@@ -3,13 +3,13 @@ import { useState } from "react";
 import styled from "styled-components";
 import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
-import { QuestionScreen } from "../components/QuestionScreen";
-import { Field, TextInput, Subtitle } from "../components/ui";
+import { Subtitle } from "../components/ui";
 import { WheelPhaseScreen } from "../components/wheel/WheelPhaseScreen";
 import { BranchStep } from "../components/steps/BranchStep";
 import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
 import { ChoicesCompareStep } from "../components/steps/ChoicesCompareStep";
 import { FutureSelectStep } from "../components/steps/FutureSelectStep";
+import { FutureFollowupStep } from "../components/steps/FutureFollowupStep";
 import { ResultsStep } from "../components/steps/ResultsStep";
 import { useWheel } from "../context/WheelContext";
 import { Step } from "../context/flowTypes";
@@ -128,10 +128,9 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "futureFollowup" && (
-          <FollowupStep
-            sliceName={appData.futureWheel.slices[selectedSliceIndices[step.queueIndex]].name}
-            nowRating={appData.nowWheel.slices[selectedSliceIndices[step.queueIndex]].rating}
-            futureRating={appData.futureWheel.slices[selectedSliceIndices[step.queueIndex]].rating}
+          <FutureFollowupStep
+            appData={appData}
+            index={selectedSliceIndices[step.queueIndex]}
             onSubmit={(answer) =>
               dispatch({ type: "ANSWER_FOLLOWUP", index: selectedSliceIndices[step.queueIndex], answer })
             }
@@ -201,27 +200,6 @@ const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({ onSubmit }
       </TitleLine>
       <Subtitle>Press Enter to submit</Subtitle>
     </form>
-  );
-};
-
-const FollowupStep: React.FC<{
-  sliceName: string;
-  nowRating: number;
-  futureRating: number;
-  onSubmit: (answer: string) => void;
-}> = ({ sliceName, nowRating, futureRating, onSubmit }) => {
-  const [answer, setAnswer] = useState("");
-  return (
-    <QuestionScreen
-      title={`Let's dig into "${sliceName}"`}
-      subtitle={`You want to move this from ${nowRating} to ${futureRating}. What would it take?`}
-      onSubmit={() => onSubmit(answer.trim())}
-      canSubmit={answer.trim().length > 0}
-    >
-      <Field>
-        <TextInput autoFocus placeholder="What's one thing that would help?" value={answer} onChange={(e) => setAnswer(e.target.value)} />
-      </Field>
-    </QuestionScreen>
   );
 };
 
