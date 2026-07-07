@@ -1,0 +1,33 @@
+{
+  "name": "wheel-of-anything",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Wheel of Anything - a local-first decision wheel with WebLLM-powered action items.",
+  "scripts": {
+    "develop": "gatsby develop",
+    "start": "gatsby develop",
+    "build": "gatsby build",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mlc-ai/web-llm": "^0.2.79",
+    "gatsby": "^5.14.0",
+    "gatsby-plugin-emotion": "^8.14.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
