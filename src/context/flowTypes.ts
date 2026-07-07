@@ -2,16 +2,18 @@ import { AppData, ActionItem } from "../types";
 
 export type Path = "B" | "C";
 
+export type SliceTarget = { wheel: "now" } | { wheel: "future" } | { wheel: "choice"; choiceIndex: number };
+
 export type Step =
   | { kind: "title" }
-  | { kind: "setupSlices"; index: number }
-  | { kind: "rateNow"; index: number }
+  | { kind: "setupWheel" }
+  | { kind: "rateNow" }
   | { kind: "branch" }
   | { kind: "choicesSetup" }
-  | { kind: "choicesRate"; choiceIndex: number; sliceIndex: number }
+  | { kind: "choicesRate"; choiceIndex: number }
   | { kind: "choicesCompare" }
-  | { kind: "futureImprove"; index: number }
-  | { kind: "futureDecrease"; queueIndex: number }
+  | { kind: "futureImprove" }
+  | { kind: "futureDecrease" }
   | { kind: "futureSelect" }
   | { kind: "futureFollowup"; queueIndex: number }
   | { kind: "results" };
@@ -27,19 +29,17 @@ export interface FlowState {
 export type Action =
   | { type: "SET_TITLE"; title: string }
   | { type: "SET_SLICE_NAME"; index: number; name: string }
-  | { type: "RATE_NOW"; index: number; rating: number; reasoning: string }
+  | { type: "SUBMIT_SETUP" }
+  | { type: "RATE_SLICE"; target: SliceTarget; index: number; rating: number }
+  | { type: "REASON_SLICE"; target: SliceTarget; index: number; reasoning: string }
+  | { type: "SUBMIT_RATE_NOW" }
   | { type: "CHOOSE_PATH"; path: Path }
   | { type: "SET_CHOICES"; names: string[] }
-  | {
-      type: "RATE_CHOICE_SLICE";
-      choiceIndex: number;
-      sliceIndex: number;
-      rating: number;
-      reasoning: string;
-    }
-  | { type: "RATE_FUTURE_IMPROVE"; index: number; rating: number; reasoning: string }
-  | { type: "RATE_FUTURE_DECREASE"; index: number; rating: number; reasoning: string }
-  | { type: "SET_SELECTED_SLICES"; indices: number[] }
+  | { type: "SUBMIT_CHOICE_RATE" }
+  | { type: "SUBMIT_FUTURE_IMPROVE" }
+  | { type: "SUBMIT_FUTURE_DECREASE" }
+  | { type: "TOGGLE_SELECTED_SLICE"; index: number }
+  | { type: "SUBMIT_FUTURE_SELECT" }
   | { type: "ANSWER_FOLLOWUP"; index: number; answer: string }
   | { type: "SET_ACTION_ITEMS"; items: ActionItem[] }
   | { type: "ADD_ACTION_ITEM"; text: string }

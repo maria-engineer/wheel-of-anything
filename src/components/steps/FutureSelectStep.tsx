@@ -1,43 +1,32 @@
 import * as React from "react";
-import { useState } from "react";
 import { AppData } from "../../types";
 import { Title, Subtitle, Button } from "../ui";
-import { WheelRadarChart } from "../WheelRadarChart";
-import { SliceDeltaList } from "../SliceDeltaList";
+import { WheelDial } from "../wheel/WheelDial";
+import { deltaColor } from "../wheel/deltaColor";
 
-export const FutureSelectStep: React.FC<{ appData: AppData; onSubmit: (indices: number[]) => void }> = ({
-  appData,
-  onSubmit,
-}) => {
-  const [selected, setSelected] = useState<number[]>([]);
-  const sliceNames = appData.nowWheel.slices.map((s) => s.name);
+interface FutureSelectStepProps {
+  appData: AppData;
+  selected: number[];
+  onToggle: (index: number) => void;
+  onSubmit: () => void;
+}
+
+export const FutureSelectStep: React.FC<FutureSelectStepProps> = ({ appData, selected, onToggle, onSubmit }) => {
   const nowValues = appData.nowWheel.slices.map((s) => s.rating);
-  const futureValues = appData.futureWheel.slices.map((s) => s.rating);
-
-  const toggle = (index: number) => {
-    setSelected((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
-  };
 
   return (
     <div>
       <Title>Now and Future, overlapped.</Title>
-      <Subtitle>Pick the areas you actually want to do something about.</Subtitle>
-      <WheelRadarChart
-        sliceNames={sliceNames}
-        series={[
-          { key: "now", name: "Now", color: "#8A8DA6", values: nowValues },
-          { key: "future", name: "Future", color: "#4B4ADE", values: futureValues },
-        ]}
-      />
-      <SliceDeltaList
-        sliceNames={sliceNames}
-        fromValues={nowValues}
-        toValues={futureValues}
-        selectable
+      <Subtitle>Click the areas you actually want to do something about. The dark tick shows where you are now.</Subtitle>
+      <WheelDial
+        slices={appData.futureWheel.slices.map((s, i) => ({ ...s, baseline: nowValues[i] }))}
+        mode="select"
+        activeIndex={null}
         selected={selected}
-        onToggle={toggle}
+        colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
+        onActivate={onToggle}
       />
-      <Button disabled={selected.length === 0} onClick={() => onSubmit(selected)}>
+      <Button style={{ marginTop: 24 }} onClick={onSubmit}>
         Continue
       </Button>
     </div>

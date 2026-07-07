@@ -3,20 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { AppData } from "../../types";
 import { Title, Subtitle, Button } from "../ui";
-import { WheelRadarChart } from "../WheelRadarChart";
+import { WheelDial } from "../wheel/WheelDial";
+import { deltaColor } from "../wheel/deltaColor";
 import { ActionItemList } from "../ActionItemList";
 import { generateActionItems, isWebGPUSupported } from "../../webllm/actionItems";
 import { buildStoryText } from "../../utils/buildStory";
 
 const ChartsRow = styled.div`
   display: flex;
-  gap: 16px;
+  gap: 24px;
   flex-wrap: wrap;
+  justify-content: center;
 `;
 
 const ChartColumn = styled.div`
-  flex: 1;
-  min-width: 240px;
   text-align: center;
 `;
 
@@ -47,7 +47,7 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "unavailable">("idle");
   const [progressText, setProgressText] = useState("");
   const started = useRef(false);
-  const sliceNames = appData.nowWheel.slices.map((s) => s.name);
+  const nowValues = appData.nowWheel.slices.map((s) => s.rating);
 
   useEffect(() => {
     if (started.current || appData.actionItems.length > 0) return;
@@ -77,20 +77,16 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
       <ChartsRow>
         <ChartColumn>
           <Subtitle>Now</Subtitle>
-          <WheelRadarChart
-            sliceNames={sliceNames}
-            series={[{ key: "now", name: "Now", color: "#8A8DA6", values: appData.nowWheel.slices.map((s) => s.rating) }]}
-            height={240}
-          />
+          <WheelDial slices={appData.nowWheel.slices} mode="view" activeIndex={null} size={260} />
         </ChartColumn>
         <ChartColumn>
           <Subtitle>Future</Subtitle>
-          <WheelRadarChart
-            sliceNames={sliceNames}
-            series={[
-              { key: "future", name: "Future", color: "#4B4ADE", values: appData.futureWheel.slices.map((s) => s.rating) },
-            ]}
-            height={240}
+          <WheelDial
+            slices={appData.futureWheel.slices.map((s, i) => ({ ...s, baseline: nowValues[i] }))}
+            mode="view"
+            activeIndex={null}
+            size={260}
+            colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
           />
         </ChartColumn>
       </ChartsRow>
