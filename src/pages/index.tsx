@@ -1,9 +1,10 @@
 import * as React from "react";
 import { useState } from "react";
+import styled from "styled-components";
 import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
 import { QuestionScreen } from "../components/QuestionScreen";
-import { Field, TextInput } from "../components/ui";
+import { Field, TextInput, Subtitle } from "../components/ui";
 import { WheelPhaseScreen } from "../components/wheel/WheelPhaseScreen";
 import { BranchStep } from "../components/steps/BranchStep";
 import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
@@ -57,13 +58,10 @@ const IndexPage: React.FC<PageProps> = () => {
         {step.kind === "rateNow" && (
           <WheelPhaseScreen
             title="How is each area going right now?"
-            subtitle="Click a wedge, then drag it (or type a number) to rate it 0–10, and say why."
+            subtitle="Click a wedge, then drag it (or type a number) to rate it 0–10."
             mode="rate"
             slices={appData.nowWheel.slices}
             onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "now" }, index, rating })}
-            onReason={(index, reasoning) =>
-              dispatch({ type: "REASON_SLICE", target: { wheel: "now" }, index, reasoning })
-            }
             onContinue={() => dispatch({ type: "SUBMIT_RATE_NOW" })}
           />
         )}
@@ -86,14 +84,6 @@ const IndexPage: React.FC<PageProps> = () => {
             onRate={(index, rating) =>
               dispatch({ type: "RATE_SLICE", target: { wheel: "choice", choiceIndex: step.choiceIndex }, index, rating })
             }
-            onReason={(index, reasoning) =>
-              dispatch({
-                type: "REASON_SLICE",
-                target: { wheel: "choice", choiceIndex: step.choiceIndex },
-                index,
-                reasoning,
-              })
-            }
             onContinue={() => dispatch({ type: "SUBMIT_CHOICE_RATE" })}
             continueLabel={step.choiceIndex < appData.choices.length - 1 ? "Next choice" : "Compare choices"}
           />
@@ -111,9 +101,6 @@ const IndexPage: React.FC<PageProps> = () => {
             slices={appData.futureWheel.slices}
             baselineValues={nowValues}
             onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
-            onReason={(index, reasoning) =>
-              dispatch({ type: "REASON_SLICE", target: { wheel: "future" }, index, reasoning })
-            }
             onContinue={() => dispatch({ type: "SUBMIT_FUTURE_IMPROVE" })}
           />
         )}
@@ -126,11 +113,7 @@ const IndexPage: React.FC<PageProps> = () => {
             slices={appData.futureWheel.slices}
             interactiveIndices={decreaseQueue}
             baselineValues={nowValues}
-            seedConfirmedFromReasoning={false}
             onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
-            onReason={(index, reasoning) =>
-              dispatch({ type: "REASON_SLICE", target: { wheel: "future" }, index, reasoning })
-            }
             onContinue={() => dispatch({ type: "SUBMIT_FUTURE_DECREASE" })}
           />
         )}
@@ -176,20 +159,48 @@ const IndexPage: React.FC<PageProps> = () => {
   );
 };
 
+const TitleLine = styled.h1`
+  font-size: 2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 8px;
+`;
+
+const InlineInput = styled.input`
+  font-size: 2rem;
+  font-weight: 600;
+  min-width: 180px;
+  border: none;
+  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.accent};
+  padding: 0 0 2px;
+
+  &:focus {
+    outline: none;
+    border-bottom-color: ${({ theme }) => theme.colors.accent};
+  }
+`;
+
 const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({ onSubmit }) => {
   const [title, setTitle] = useState("");
+  const submit = () => title.trim() && onSubmit(title.trim());
   return (
-    <QuestionScreen
-      title="Welcome to the Wheel of Anything"
-      subtitle="It helps you make decisions and turns them into concrete actions. What do you want to explore? (e.g. Life, Career)"
-      onSubmit={() => onSubmit(title.trim())}
-      canSubmit={title.trim().length > 0}
-      submitLabel="Get started"
-    >
-      <Field>
-        <TextInput autoFocus placeholder="Life, Career, ..." value={title} onChange={(e) => setTitle(e.target.value)} />
-      </Field>
-    </QuestionScreen>
+    <form onSubmit={(e) => (e.preventDefault(), submit())}>
+      <TitleLine>
+        Wheel of
+        <InlineInput
+          autoFocus
+          placeholder="Life, Career, ..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </TitleLine>
+      <Subtitle>Press Enter to submit</Subtitle>
+    </form>
   );
 };
 

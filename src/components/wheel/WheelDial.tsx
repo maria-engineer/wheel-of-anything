@@ -140,6 +140,7 @@ export const WheelDial: React.FC<WheelDialProps> = ({
               aria-valuemax={mode === "rate" ? MAX_RATING : undefined}
               aria-label={slice.name || `Area ${i + 1}`}
               opacity={interactive ? 1 : 0.4}
+              style={{ outline: "none" }}
               onFocus={() => interactive && mode === "rate" && onActivate?.(i)}
               onMouseEnter={() => onHover?.(i)}
               onMouseLeave={() => onHover?.(null)}

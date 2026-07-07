@@ -2,8 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import styled from "styled-components";
 import { WheelDial, WheelSliceDatum } from "./WheelDial";
-import { Modal } from "../Modal";
-import { Title, Subtitle, Button, ButtonRow, TextInput, TextArea, Field, Label } from "../ui";
+import { Title, Subtitle, Button, ButtonRow, TextInput } from "../ui";
 
 const Layout = styled.div`
   display: flex;
@@ -11,10 +10,19 @@ const Layout = styled.div`
   align-items: center;
 `;
 
+const Row = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+`;
+
 const PanelWrap = styled.div`
   width: 100%;
-  max-width: 360px;
-  margin-top: 16px;
+  max-width: 280px;
+  margin-top: 12px;
   padding: 20px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.surface};
@@ -22,13 +30,14 @@ const PanelWrap = styled.div`
 `;
 
 const PanelHeading = styled.h3`
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 `;
 
 const NumberRow = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
 `;
 
 const NumberInput = styled.input`
@@ -45,10 +54,10 @@ const NumberInput = styled.input`
   }
 `;
 
-const Hint = styled.p`
+const HintText = styled.p`
   color: ${({ theme }) => theme.colors.muted};
   font-size: 0.9rem;
-  margin: 8px 0 24px;
+  margin: 8px 0 16px;
 `;
 
 interface WheelPhaseScreenProps {
@@ -61,10 +70,8 @@ interface WheelPhaseScreenProps {
   colorForIndex?: (index: number, slice: WheelSliceDatum) => string;
   onNameChange?: (index: number, name: string) => void;
   onRate?: (index: number, rating: number) => void;
-  onReason?: (index: number, reasoning: string) => void;
   onContinue: () => void;
   continueLabel?: string;
-  seedConfirmedFromReasoning?: boolean;
 }
 
 export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
@@ -77,92 +84,76 @@ export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
   colorForIndex,
   onNameChange,
   onRate,
-  onReason,
   onContinue,
   continueLabel = "Continue",
-  seedConfirmedFromReasoning = true,
 }) => {
   const eligible = interactiveIndices ?? slices.map((_, i) => i);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [namingIndex, setNamingIndex] = useState<number | null>(null);
-  const [draftName, setDraftName] = useState("");
-  const [confirmed, setConfirmed] = useState<number[]>(() =>
-    eligible.filter((i) =>
-      mode === "name" ? slices[i].name.trim() !== "" : seedConfirmedFromReasoning && slices[i].reasoning?.trim()
-    )
-  );
+  const seedConfirmed = mode === "name" ? eligible.filter((i) => slices[i].name.trim() !== "") : [];
+  const [confirmed, setConfirmed] = useState<number[]>(seedConfirmed);
+  const firstOpen = eligible.find((i) => !seedConfirmed.includes(i)) ?? null;
+  const [activeIndex, setActiveIndex] = useState<number | null>(firstOpen);
+  const [draftName, setDraftName] = useState(firstOpen !== null ? slices[firstOpen].name : "");
 
   const allDone = eligible.every((i) => confirmed.includes(i));
-  const confirm = (index: number) => setConfirmed((prev) => (prev.includes(index) ? prev : [...prev, index]));
-
   const dialSlices = slices.map((s, i) => ({ ...s, baseline: baselineValues?.[i] }));
   const active = activeIndex !== null ? slices[activeIndex] : null;
+
+  const activate = (index: number) => {
+    setActiveIndex(index);
+    if (mode === "name") setDraftName(slices[index].name);
+  };
+
+  const confirmAndAdvance = (index: number) => {
+    const updated = confirmed.includes(index) ? confirmed : [...confirmed, index];
+    setConfirmed(updated);
+    const next = eligible.find((i) => !updated.includes(i)) ?? null;
+    setActiveIndex(next);
+    if (mode === "name") setDraftName(next !== null ? slices[next].name : "");
+  };
 
   return (
     <Layout>
       <Title>{title}</Title>
       {subtitle && <Subtitle>{subtitle}</Subtitle>}
-      <Hint>
+      <HintText>
         {confirmed.length} of {eligible.length} areas set
-      </Hint>
+      </HintText>
 
-      <WheelDial
-        slices={dialSlices}
-        mode={mode === "name" ? "name" : "rate"}
-        activeIndex={mode === "name" ? namingIndex : activeIndex}
-        interactiveIndices={interactiveIndices}
-        colorForIndex={colorForIndex}
-        onActivate={(i) => {
-          if (mode === "name") {
-            setNamingIndex(i);
-            setDraftName(slices[i].name);
-          } else {
-            setActiveIndex(i);
-          }
-        }}
-        onRate={(i, value) => onRate?.(i, value)}
-      />
+      <Row>
+        <WheelDial
+          slices={dialSlices}
+          mode={mode === "name" ? "name" : "rate"}
+          activeIndex={activeIndex}
+          interactiveIndices={interactiveIndices}
+          colorForIndex={colorForIndex}
+          onActivate={activate}
+          onRate={(i, value) => onRate?.(i, value)}
+        />
 
-      {mode === "rate" && active && activeIndex !== null && (
-        <PanelWrap>
-          <PanelHeading>{active.name || `Area ${activeIndex + 1}`}</PanelHeading>
-          <Field>
-            <Label>Rating</Label>
+        {mode === "rate" && active && activeIndex !== null && (
+          <PanelWrap>
+            <PanelHeading>{active.name || `Area ${activeIndex + 1}`}</PanelHeading>
             <NumberRow>
               <NumberInput
+                autoFocus
                 type="number"
                 min={0}
                 max={10}
                 value={active.rating}
                 onChange={(e) => onRate?.(activeIndex, Math.max(0, Math.min(10, Number(e.target.value))))}
+                onKeyDown={(e) => e.key === "Enter" && confirmAndAdvance(activeIndex)}
               />
-              <span>/ 10 (or drag the wedge on the wheel)</span>
+              <span>/ 10 (or drag the wedge)</span>
             </NumberRow>
-          </Field>
-          <Field>
-            <Label>Why?</Label>
-            <TextArea
-              autoFocus
-              value={active.reasoning}
-              onChange={(e) => onReason?.(activeIndex, e.target.value)}
-            />
-          </Field>
-          <Button
-            type="button"
-            onClick={() => {
-              confirm(activeIndex);
-              setActiveIndex(null);
-            }}
-          >
-            Done with this one
-          </Button>
-        </PanelWrap>
-      )}
+            <Button type="button" onClick={() => confirmAndAdvance(activeIndex)}>
+              Next
+            </Button>
+          </PanelWrap>
+        )}
 
-      {mode === "name" && namingIndex !== null && (
-        <Modal>
-          <PanelHeading>Name area {namingIndex + 1}</PanelHeading>
-          <Field>
+        {mode === "name" && activeIndex !== null && (
+          <PanelWrap>
+            <PanelHeading>Area {activeIndex + 1}</PanelHeading>
             <TextInput
               autoFocus
               placeholder="e.g. Health"
@@ -170,28 +161,26 @@ export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
               onChange={(e) => setDraftName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && draftName.trim()) {
-                  onNameChange?.(namingIndex, draftName.trim());
-                  confirm(namingIndex);
-                  setNamingIndex(null);
-                  setDraftName("");
+                  onNameChange?.(activeIndex, draftName.trim());
+                  confirmAndAdvance(activeIndex);
                 }
               }}
             />
-          </Field>
-          <Button
-            type="button"
-            disabled={!draftName.trim()}
-            onClick={() => {
-              onNameChange?.(namingIndex, draftName.trim());
-              confirm(namingIndex);
-              setNamingIndex(null);
-              setDraftName("");
-            }}
-          >
-            Save
-          </Button>
-        </Modal>
-      )}
+            <ButtonRow>
+              <Button
+                type="button"
+                disabled={!draftName.trim()}
+                onClick={() => {
+                  onNameChange?.(activeIndex, draftName.trim());
+                  confirmAndAdvance(activeIndex);
+                }}
+              >
+                Next
+              </Button>
+            </ButtonRow>
+          </PanelWrap>
+        )}
+      </Row>
 
       <ButtonRow>
         <Button type="button" disabled={!allDone} onClick={onContinue}>
