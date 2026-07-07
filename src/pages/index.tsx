@@ -1,193 +1,225 @@
-import * as React from "react"
-import type { HeadFC, PageProps } from "gatsby"
+import * as React from "react";
+import { useState } from "react";
+import type { HeadFC, PageProps } from "gatsby";
+import { Layout } from "../components/Layout";
+import { QuestionScreen } from "../components/QuestionScreen";
+import { RateSliceStep } from "../components/RateSliceStep";
+import { Field, TextInput } from "../components/ui";
+import { BranchStep } from "../components/steps/BranchStep";
+import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
+import { ChoicesCompareStep } from "../components/steps/ChoicesCompareStep";
+import { FutureSelectStep } from "../components/steps/FutureSelectStep";
+import { ResultsStep } from "../components/steps/ResultsStep";
+import { useWheel } from "../context/WheelContext";
+import { SLICE_COUNT } from "../types";
+import { Step } from "../context/flowTypes";
 
-const pageStyles = {
-  color: "#232129",
-  padding: 96,
-  fontFamily: "-apple-system, Roboto, sans-serif, serif",
-}
-const headingStyles = {
-  marginTop: 0,
-  marginBottom: 64,
-  maxWidth: 320,
-}
-const headingAccentStyles = {
-  color: "#663399",
-}
-const paragraphStyles = {
-  marginBottom: 48,
-}
-const codeStyles = {
-  color: "#8A6534",
-  padding: 4,
-  backgroundColor: "#FFF4DB",
-  fontSize: "1.25rem",
-  borderRadius: 4,
-}
-const listStyles = {
-  marginBottom: 96,
-  paddingLeft: 0,
-}
-const doclistStyles = {
-  paddingLeft: 0,
-}
-const listItemStyles = {
-  fontWeight: 300,
-  fontSize: 24,
-  maxWidth: 560,
-  marginBottom: 30,
-}
+const stepProgress = (step: Step): number => {
+  const order: Record<Step["kind"], number> = {
+    title: 0,
+    setupSlices: 1,
+    rateNow: 2,
+    branch: 3,
+    choicesSetup: 4,
+    choicesRate: 5,
+    choicesCompare: 6,
+    futureImprove: 4,
+    futureDecrease: 5,
+    futureSelect: 6,
+    futureFollowup: 7,
+    results: 8,
+  };
+  return order[step.kind] / 8;
+};
 
-const linkStyle = {
-  color: "#8954A8",
-  fontWeight: "bold",
-  fontSize: 16,
-  verticalAlign: "5%",
-}
-
-const docLinkStyle = {
-  ...linkStyle,
-  listStyleType: "none",
-  display: `inline-block`,
-  marginBottom: 24,
-  marginRight: 12,
-}
-
-const descriptionStyle = {
-  color: "#232129",
-  fontSize: 14,
-  marginTop: 10,
-  marginBottom: 0,
-  lineHeight: 1.25,
-}
-
-const docLinks = [
-  {
-    text: "TypeScript Documentation",
-    url: "https://www.gatsbyjs.com/docs/how-to/custom-configuration/typescript/",
-    color: "#8954A8",
-  },
-  {
-    text: "GraphQL Typegen Documentation",
-    url: "https://www.gatsbyjs.com/docs/how-to/local-development/graphql-typegen/",
-    color: "#8954A8",
-  }
-]
-
-const badgeStyle = {
-  color: "#fff",
-  backgroundColor: "#088413",
-  border: "1px solid #088413",
-  fontSize: 11,
-  fontWeight: "bold",
-  letterSpacing: 1,
-  borderRadius: 4,
-  padding: "4px 6px",
-  display: "inline-block",
-  position: "relative" as "relative",
-  top: -2,
-  marginLeft: 10,
-  lineHeight: 1,
-}
-
-const links = [
-  {
-    text: "Tutorial",
-    url: "https://www.gatsbyjs.com/docs/tutorial/getting-started/",
-    description:
-      "A great place to get started if you're new to web development. Designed to guide you through setting up your first Gatsby site.",
-    color: "#E95800",
-  },
-  {
-    text: "How to Guides",
-    url: "https://www.gatsbyjs.com/docs/how-to/",
-    description:
-      "Practical step-by-step guides to help you achieve a specific goal. Most useful when you're trying to get something done.",
-    color: "#1099A8",
-  },
-  {
-    text: "Reference Guides",
-    url: "https://www.gatsbyjs.com/docs/reference/",
-    description:
-      "Nitty-gritty technical descriptions of how Gatsby works. Most useful when you need detailed information about Gatsby's APIs.",
-    color: "#BC027F",
-  },
-  {
-    text: "Conceptual Guides",
-    url: "https://www.gatsbyjs.com/docs/conceptual/",
-    description:
-      "Big-picture explanations of higher-level Gatsby concepts. Most useful for building understanding of a particular topic.",
-    color: "#0D96F2",
-  },
-  {
-    text: "Plugin Library",
-    url: "https://www.gatsbyjs.com/plugins",
-    description:
-      "Add functionality and customize your Gatsby site or app with thousands of plugins built by our amazing developer community.",
-    color: "#8EB814",
-  },
-  {
-    text: "Build and Host",
-    url: "https://www.gatsbyjs.com/cloud",
-    badge: true,
-    description:
-      "Now you’re ready to show the world! Give your Gatsby site superpowers: Build and host on Gatsby Cloud. Get started for free!",
-    color: "#663399",
-  },
-]
+const stepKey = (step: Step): string => JSON.stringify(step);
 
 const IndexPage: React.FC<PageProps> = () => {
+  const { state, dispatch } = useWheel();
+  const { appData, step, decreaseQueue, selectedSliceIndices } = state;
+
   return (
-    <main style={pageStyles}>
-      <h1 style={headingStyles}>
-        Congratulations
-        <br />
-        <span style={headingAccentStyles}>— you just made a Gatsby site! 🎉🎉🎉</span>
-      </h1>
-      <p style={paragraphStyles}>
-        Edit <code style={codeStyles}>src/pages/index.tsx</code> to see this page
-        update in real-time. 😎
-      </p>
-      <ul style={doclistStyles}>
-        {docLinks.map(doc => (
-          <li key={doc.url} style={docLinkStyle}>
-            <a
-              style={linkStyle}
-              href={`${doc.url}?utm_source=starter&utm_medium=ts-docs&utm_campaign=minimal-starter-ts`}
-            >
-              {doc.text}
-            </a>
-          </li>
-        ))}
-      </ul>
-      <ul style={listStyles}>
-        {links.map(link => (
-          <li key={link.url} style={{ ...listItemStyles, color: link.color }}>
-            <span>
-              <a
-                style={linkStyle}
-                href={`${link.url}?utm_source=starter&utm_medium=start-page&utm_campaign=minimal-starter-ts`}
-              >
-                {link.text}
-              </a>
-              {link.badge && (
-                <span style={badgeStyle} aria-label="New Badge">
-                  NEW!
-                </span>
-              )}
-              <p style={descriptionStyle}>{link.description}</p>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <img
-        alt="Gatsby G Logo"
-        src="data:image/svg+xml,%3Csvg width='24' height='24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2a10 10 0 110 20 10 10 0 010-20zm0 2c-3.73 0-6.86 2.55-7.75 6L14 19.75c3.45-.89 6-4.02 6-7.75h-5.25v1.5h3.45a6.37 6.37 0 01-3.89 4.44L6.06 9.69C7 7.31 9.3 5.63 12 5.63c2.13 0 4 1.04 5.18 2.65l1.23-1.06A7.959 7.959 0 0012 4zm-8 8a8 8 0 008 8c.04 0 .09 0-8-8z' fill='%23639'/%3E%3C/svg%3E"
-      />
-    </main>
-  )
-}
+    <Layout progress={stepProgress(step)}>
+      <div key={stepKey(step)}>
+        {step.kind === "title" && <TitleStep onSubmit={(title) => dispatch({ type: "SET_TITLE", title })} />}
 
-export default IndexPage
+        {step.kind === "setupSlices" && (
+          <SetupSliceStep
+            index={step.index}
+            wheelTitle={appData.title}
+            onSubmit={(name) => dispatch({ type: "SET_SLICE_NAME", index: step.index, name })}
+          />
+        )}
 
-export const Head: HeadFC = () => <title>Home Page</title>
+        {step.kind === "rateNow" && (
+          <RateSliceStep
+            title={`How is "${appData.nowWheel.slices[step.index].name}" going right now?`}
+            subtitle={`Area ${step.index + 1} of ${SLICE_COUNT}`}
+            initialRating={appData.nowWheel.slices[step.index].rating}
+            initialReasoning={appData.nowWheel.slices[step.index].reasoning}
+            onSubmit={(rating, reasoning) => dispatch({ type: "RATE_NOW", index: step.index, rating, reasoning })}
+          />
+        )}
+
+        {step.kind === "branch" && <BranchStep onChoose={(path) => dispatch({ type: "CHOOSE_PATH", path })} />}
+
+        {step.kind === "choicesSetup" && (
+          <ChoicesSetupStep onSubmit={(names) => dispatch({ type: "SET_CHOICES", names })} />
+        )}
+
+        {step.kind === "choicesRate" && (
+          <RateSliceStep
+            title={`"${appData.choices[step.choiceIndex].title}": how would "${
+              appData.choices[step.choiceIndex].slices[step.sliceIndex].name
+            }" look?`}
+            subtitle={`Choice ${step.choiceIndex + 1} of ${appData.choices.length} — Area ${step.sliceIndex + 1} of ${SLICE_COUNT}`}
+            initialRating={appData.choices[step.choiceIndex].slices[step.sliceIndex].rating}
+            initialReasoning={appData.choices[step.choiceIndex].slices[step.sliceIndex].reasoning}
+            onSubmit={(rating, reasoning) =>
+              dispatch({
+                type: "RATE_CHOICE_SLICE",
+                choiceIndex: step.choiceIndex,
+                sliceIndex: step.sliceIndex,
+                rating,
+                reasoning,
+              })
+            }
+          />
+        )}
+
+        {step.kind === "choicesCompare" && (
+          <ChoicesCompareStep appData={appData} onRestart={() => dispatch({ type: "RESET" })} />
+        )}
+
+        {step.kind === "futureImprove" && (
+          <RateSliceStep
+            title={`Where do you want "${appData.futureWheel.slices[step.index].name}" to be?`}
+            subtitle={`Area ${step.index + 1} of ${SLICE_COUNT} — imagining the future`}
+            ratingLabel="What rating would you like it to reach?"
+            reasoningLabel="What would that look like?"
+            initialRating={
+              appData.futureWheel.slices[step.index].reasoning
+                ? appData.futureWheel.slices[step.index].rating
+                : appData.nowWheel.slices[step.index].rating
+            }
+            initialReasoning={appData.futureWheel.slices[step.index].reasoning}
+            onSubmit={(rating, reasoning) =>
+              dispatch({ type: "RATE_FUTURE_IMPROVE", index: step.index, rating, reasoning })
+            }
+          />
+        )}
+
+        {step.kind === "futureDecrease" && (
+          <RateSliceStep
+            title={`Could you accept "${appData.futureWheel.slices[decreaseQueue[step.queueIndex]].name}" being lower?`}
+            subtitle="This area didn't change — would you trade some of it away to gain elsewhere?"
+            ratingLabel="What's the lowest you'd accept?"
+            reasoningLabel="Why would that be okay?"
+            initialRating={appData.futureWheel.slices[decreaseQueue[step.queueIndex]].rating}
+            initialReasoning={appData.futureWheel.slices[decreaseQueue[step.queueIndex]].reasoning}
+            onSubmit={(rating, reasoning) =>
+              dispatch({ type: "RATE_FUTURE_DECREASE", index: decreaseQueue[step.queueIndex], rating, reasoning })
+            }
+          />
+        )}
+
+        {step.kind === "futureSelect" && (
+          <FutureSelectStep
+            appData={appData}
+            onSubmit={(indices) => dispatch({ type: "SET_SELECTED_SLICES", indices })}
+          />
+        )}
+
+        {step.kind === "futureFollowup" && (
+          <FollowupStep
+            sliceName={appData.futureWheel.slices[selectedSliceIndices[step.queueIndex]].name}
+            nowRating={appData.nowWheel.slices[selectedSliceIndices[step.queueIndex]].rating}
+            futureRating={appData.futureWheel.slices[selectedSliceIndices[step.queueIndex]].rating}
+            onSubmit={(answer) =>
+              dispatch({ type: "ANSWER_FOLLOWUP", index: selectedSliceIndices[step.queueIndex], answer })
+            }
+          />
+        )}
+
+        {step.kind === "results" && (
+          <ResultsStep
+            appData={appData}
+            selectedSliceIndices={selectedSliceIndices}
+            onToggleActionItem={(id) => dispatch({ type: "TOGGLE_ACTION_ITEM", id })}
+            onDeleteActionItem={(id) => dispatch({ type: "DELETE_ACTION_ITEM", id })}
+            onAddActionItem={(text) => dispatch({ type: "ADD_ACTION_ITEM", text })}
+            onSetActionItems={(items) =>
+              dispatch({
+                type: "SET_ACTION_ITEMS",
+                items: items.map((text, i) => ({ id: i + 1, text, state: "TODO" as const })),
+              })
+            }
+            onRestart={() => dispatch({ type: "RESET" })}
+          />
+        )}
+      </div>
+    </Layout>
+  );
+};
+
+const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({ onSubmit }) => {
+  const [title, setTitle] = useState("");
+  return (
+    <QuestionScreen
+      title="Welcome to the Wheel of Anything"
+      subtitle="It helps you make decisions and turns them into concrete actions. What do you want to explore? (e.g. Life, Career)"
+      onSubmit={() => onSubmit(title.trim())}
+      canSubmit={title.trim().length > 0}
+      submitLabel="Get started"
+    >
+      <Field>
+        <TextInput autoFocus placeholder="Life, Career, ..." value={title} onChange={(e) => setTitle(e.target.value)} />
+      </Field>
+    </QuestionScreen>
+  );
+};
+
+const SetupSliceStep: React.FC<{ index: number; wheelTitle: string; onSubmit: (name: string) => void }> = ({
+  index,
+  wheelTitle,
+  onSubmit,
+}) => {
+  const [name, setName] = useState("");
+  return (
+    <QuestionScreen
+      title={`Area ${index + 1} of ${SLICE_COUNT}`}
+      subtitle={`Name one part of your Wheel of ${wheelTitle}.`}
+      onSubmit={() => onSubmit(name.trim())}
+      canSubmit={name.trim().length > 0}
+    >
+      <Field>
+        <TextInput autoFocus placeholder="e.g. Health" value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+    </QuestionScreen>
+  );
+};
+
+const FollowupStep: React.FC<{
+  sliceName: string;
+  nowRating: number;
+  futureRating: number;
+  onSubmit: (answer: string) => void;
+}> = ({ sliceName, nowRating, futureRating, onSubmit }) => {
+  const [answer, setAnswer] = useState("");
+  return (
+    <QuestionScreen
+      title={`Let's dig into "${sliceName}"`}
+      subtitle={`You want to move this from ${nowRating} to ${futureRating}. What would it take?`}
+      onSubmit={() => onSubmit(answer.trim())}
+      canSubmit={answer.trim().length > 0}
+    >
+      <Field>
+        <TextInput autoFocus placeholder="What's one thing that would help?" value={answer} onChange={(e) => setAnswer(e.target.value)} />
+      </Field>
+    </QuestionScreen>
+  );
+};
+
+export default IndexPage;
+
+export const Head: HeadFC = () => <title>The Wheel of Anything</title>;

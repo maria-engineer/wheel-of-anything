@@ -1,68 +1,45 @@
-import React, { createContext, useState } from "react";
+import * as React from "react";
+import { createContext, useContext, useEffect, useReducer } from "react";
+import { Action, FlowState } from "./flowTypes";
+import { flowReducer, initialFlowState } from "./flowReducer";
 
-// Define the Task type
-export type Task = {
-  name: string;
-  status: "DONE" | "IN_PROGRESS" | "PLANNED" | "BLOCKED";
+const STORAGE_KEY = "wheel-of-anything:v1";
+
+interface WheelContextValue {
+  state: FlowState;
+  dispatch: React.Dispatch<Action>;
+}
+
+export const WheelContext = createContext<WheelContextValue | undefined>(undefined);
+
+const loadPersistedState = (): FlowState | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as FlowState) : null;
+  } catch {
+    return null;
+  }
 };
 
-// Define the Slice type
-type Slice = {
-  name: string;
-  currentRating?: number;
-  desiredRating?: number;
-  reasonForCurrentRating?: string;
-  whatToChange?: string;
-  tasks: Task[]; // Array of Task
+export const WheelProvider = ({ children }: { children: React.ReactNode }) => {
+  const [state, dispatch] = useReducer(flowReducer, initialFlowState);
+
+  useEffect(() => {
+    const persisted = loadPersistedState();
+    if (persisted) dispatch({ type: "RESTORE", state: persisted });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  return <WheelContext.Provider value={{ state, dispatch }}>{children}</WheelContext.Provider>;
 };
 
-// Define the Wheel type
-type Wheel = {
-  name: string; // Wheel of _____
-  timestamp: number;
-  slice1?: Slice; // Array of 8 Slice objects
-  slice2?: Slice;
-  slice3?: Slice;
-  slice4?: Slice;
-  slice5?: Slice;
-  slice6?: Slice;
-  slice7?: Slice;
-  slice8?: Slice;
-};
-
-export type AppContext = Map<number, Wheel>;
-// Create the context
-export const WheelContext = createContext<AppContext>(new Map());
-
-const getStoredWheels = (): AppContext => {
-  const wheelsData = localStorage.getItem("wheels");
-  return wheelsData ? JSON.parse(wheelsData) : new Map();
-};
-
-const storeWheels = (wheels: AppContext): void => {
-  localStorage.setItem("wheels", JSON.stringify(wheels));
-};
-
-// Define the provider
-export const WheelProvider = ({
-  children,
-}: {
-  children: string | JSX.Element | JSX.Element[];
-}) => {
-  // Set up the state you want to manage globally (e.g., user ratings)
-  const [wheels, setWheels] = useState<AppContext>(getStoredWheels());
-  const [currentWheel, setCurrentWheel] = useState<Wheel | null>(null);
-
-  // You can define any additional state management or utility functions
-  const updateWheel = (category, value) => {
-    wheels.set(currentWheel!.timestamp, currentWheel);
-    setWheels(wheels);
-    storeWheels(wheels);
-  };
-
-  return (
-    <WheelContext.Provider value={{ ratings, updateRating }}>
-      {children}
-    </WheelContext.Provider>
-  );
+export const useWheel = (): WheelContextValue => {
+  const ctx = useContext(WheelContext);
+  if (!ctx) throw new Error("useWheel must be used within a WheelProvider");
+  return ctx;
 };
