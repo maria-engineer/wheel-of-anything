@@ -1,5 +1,5 @@
-import { Action, FlowState, Step } from "./flowTypes";
-import { emptyAppData, emptySlice, SLICE_COUNT } from "../types";
+import { Action, FlowState, SliceTarget, Step } from "./flowTypes";
+import { AppData, Wheel, emptyAppData } from "../types";
 
 export const initialFlowState: FlowState = {
   appData: emptyAppData(),
@@ -12,15 +12,35 @@ export const initialFlowState: FlowState = {
 const nextActionItemId = (items: { id: number }[]): number =>
   items.reduce((max, item) => Math.max(max, item.id), 0) + 1;
 
+const getWheel = (appData: AppData, target: SliceTarget): Wheel =>
+  target.wheel === "now" ? appData.nowWheel : target.wheel === "future" ? appData.futureWheel : appData.choices[target.choiceIndex];
+
+const withWheel = (appData: AppData, target: SliceTarget, wheel: Wheel): AppData => {
+  if (target.wheel === "now") return { ...appData, nowWheel: wheel };
+  if (target.wheel === "future") return { ...appData, futureWheel: wheel };
+  const choices = appData.choices.map((c, i) => (i === target.choiceIndex ? wheel : c));
+  return { ...appData, choices };
+};
+
+const patchSlice = (
+  appData: AppData,
+  target: SliceTarget,
+  index: number,
+  patch: { rating?: number; reasoning?: string }
+): AppData => {
+  const wheel = getWheel(appData, target);
+  const slices = wheel.slices.map((s, i) => (i === index ? { ...s, ...patch } : s));
+  return withWheel(appData, target, { ...wheel, slices });
+};
+
 export function flowReducer(state: FlowState, action: Action): FlowState {
   switch (action.type) {
-    case "SET_TITLE": {
+    case "SET_TITLE":
       return {
         ...state,
         appData: { ...state.appData, title: action.title },
-        step: { kind: "setupSlices", index: 0 },
+        step: { kind: "setupWheel" },
       };
-    }
 
     case "SET_SLICE_NAME": {
       const nowSlices = state.appData.nowWheel.slices.map((slice, i) =>
@@ -29,10 +49,6 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
       const futureSlices = state.appData.futureWheel.slices.map((slice, i) =>
         i === action.index ? { ...slice, name: action.name } : slice
       );
-      const nextStep: Step =
-        action.index < SLICE_COUNT - 1
-          ? { kind: "setupSlices", index: action.index + 1 }
-          : { kind: "rateNow", index: 0 };
       return {
         ...state,
         appData: {
@@ -40,104 +56,85 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
           nowWheel: { ...state.appData.nowWheel, slices: nowSlices },
           futureWheel: { ...state.appData.futureWheel, slices: futureSlices },
         },
-        step: nextStep,
       };
     }
 
-    case "RATE_NOW": {
-      const slices = state.appData.nowWheel.slices.map((slice, i) =>
-        i === action.index ? { ...slice, rating: action.rating, reasoning: action.reasoning } : slice
-      );
-      const nextStep: Step =
-        action.index < SLICE_COUNT - 1 ? { kind: "rateNow", index: action.index + 1 } : { kind: "branch" };
+    case "SUBMIT_SETUP":
+      return { ...state, step: { kind: "rateNow" } };
+
+    case "RATE_SLICE":
+      return { ...state, appData: patchSlice(state.appData, action.target, action.index, { rating: action.rating }) };
+
+    case "REASON_SLICE":
       return {
         ...state,
-        appData: { ...state.appData, nowWheel: { ...state.appData.nowWheel, slices } },
-        step: nextStep,
+        appData: patchSlice(state.appData, action.target, action.index, { reasoning: action.reasoning }),
       };
-    }
+
+    case "SUBMIT_RATE_NOW":
+      return { ...state, step: { kind: "branch" } };
 
     case "CHOOSE_PATH": {
-      const nextStep: Step = action.path === "C" ? { kind: "choicesSetup" } : { kind: "futureImprove", index: 0 };
-      return { ...state, path: action.path, step: nextStep };
+      if (action.path === "C") {
+        return { ...state, path: "C", step: { kind: "choicesSetup" } };
+      }
+      const futureWheel: Wheel = {
+        ...state.appData.futureWheel,
+        slices: state.appData.nowWheel.slices.map((s) => ({ name: s.name, rating: s.rating, reasoning: "" })),
+      };
+      return {
+        ...state,
+        path: "B",
+        appData: { ...state.appData, futureWheel },
+        step: { kind: "futureImprove" },
+      };
     }
 
     case "SET_CHOICES": {
       const choices = action.names.map((name) => ({
         title: name,
-        slices: state.appData.nowWheel.slices.map((s) => emptySlice(s.name)),
+        slices: state.appData.nowWheel.slices.map((s) => ({ name: s.name, rating: s.rating, reasoning: "" })),
       }));
       return {
         ...state,
         appData: { ...state.appData, choices },
-        step: { kind: "choicesRate", choiceIndex: 0, sliceIndex: 0 },
+        step: { kind: "choicesRate", choiceIndex: 0 },
       };
     }
 
-    case "RATE_CHOICE_SLICE": {
-      const choices = state.appData.choices.map((wheel, ci) => {
-        if (ci !== action.choiceIndex) return wheel;
-        const slices = wheel.slices.map((slice, si) =>
-          si === action.sliceIndex ? { ...slice, rating: action.rating, reasoning: action.reasoning } : slice
-        );
-        return { ...wheel, slices };
-      });
-      const isLastSlice = action.sliceIndex >= SLICE_COUNT - 1;
-      const isLastChoice = action.choiceIndex >= state.appData.choices.length - 1;
-      let nextStep: Step;
-      if (!isLastSlice) {
-        nextStep = { kind: "choicesRate", choiceIndex: action.choiceIndex, sliceIndex: action.sliceIndex + 1 };
-      } else if (!isLastChoice) {
-        nextStep = { kind: "choicesRate", choiceIndex: action.choiceIndex + 1, sliceIndex: 0 };
-      } else {
-        nextStep = { kind: "choicesCompare" };
-      }
-      return { ...state, appData: { ...state.appData, choices }, step: nextStep };
+    case "SUBMIT_CHOICE_RATE": {
+      const step = state.step;
+      const choiceIndex = step.kind === "choicesRate" ? step.choiceIndex : 0;
+      const nextStep: Step =
+        choiceIndex < state.appData.choices.length - 1
+          ? { kind: "choicesRate", choiceIndex: choiceIndex + 1 }
+          : { kind: "choicesCompare" };
+      return { ...state, step: nextStep };
     }
 
-    case "RATE_FUTURE_IMPROVE": {
-      const slices = state.appData.futureWheel.slices.map((slice, i) =>
-        i === action.index ? { ...slice, rating: action.rating, reasoning: action.reasoning } : slice
-      );
-      const futureWheel = { ...state.appData.futureWheel, slices };
-      if (action.index < SLICE_COUNT - 1) {
-        return {
-          ...state,
-          appData: { ...state.appData, futureWheel },
-          step: { kind: "futureImprove", index: action.index + 1 },
-        };
-      }
+    case "SUBMIT_FUTURE_IMPROVE": {
       const decreaseQueue = state.appData.nowWheel.slices
-        .map((nowSlice, i) => (nowSlice.rating === slices[i].rating ? i : -1))
+        .map((nowSlice, i) => (nowSlice.rating === state.appData.futureWheel.slices[i].rating ? i : -1))
         .filter((i) => i >= 0);
       const nextStep: Step =
-        decreaseQueue.length > 0 ? { kind: "futureDecrease", queueIndex: 0 } : { kind: "futureSelect" };
-      return {
-        ...state,
-        appData: { ...state.appData, futureWheel },
-        decreaseQueue,
-        step: nextStep,
-      };
+        decreaseQueue.length > 0 ? { kind: "futureDecrease" } : { kind: "futureSelect" };
+      return { ...state, decreaseQueue, step: nextStep };
     }
 
-    case "RATE_FUTURE_DECREASE": {
-      const slices = state.appData.futureWheel.slices.map((slice, i) =>
-        i === action.index ? { ...slice, rating: action.rating, reasoning: action.reasoning } : slice
-      );
-      const futureWheel = { ...state.appData.futureWheel, slices };
-      const step = state.step;
-      const queueIndex = step.kind === "futureDecrease" ? step.queueIndex : 0;
-      const nextStep: Step =
-        queueIndex + 1 < state.decreaseQueue.length
-          ? { kind: "futureDecrease", queueIndex: queueIndex + 1 }
-          : { kind: "futureSelect" };
-      return { ...state, appData: { ...state.appData, futureWheel }, step: nextStep };
+    case "SUBMIT_FUTURE_DECREASE":
+      return { ...state, step: { kind: "futureSelect" } };
+
+    case "TOGGLE_SELECTED_SLICE": {
+      const selectedSliceIndices = state.selectedSliceIndices.includes(action.index)
+        ? state.selectedSliceIndices.filter((i) => i !== action.index)
+        : [...state.selectedSliceIndices, action.index];
+      return { ...state, selectedSliceIndices };
     }
 
-    case "SET_SELECTED_SLICES": {
+    case "SUBMIT_FUTURE_SELECT": {
       const nextStep: Step =
-        action.indices.length > 0 ? { kind: "futureFollowup", queueIndex: 0 } : { kind: "results" };
-      return { ...state, selectedSliceIndices: action.indices, step: nextStep };
+        state.selectedSliceIndices.length > 0 ? { kind: "futureFollowup", queueIndex: 0 } : { kind: "results" };
+      return { ...state, step: nextStep };
     }
 
     case "ANSWER_FOLLOWUP": {

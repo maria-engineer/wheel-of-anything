@@ -28,7 +28,7 @@ export interface AppData {
   actionItems: ActionItem[];
 }
 
-export const emptySlice = (name = ""): Slice => ({ name, rating: 5, reasoning: "" });
+export const emptySlice = (name = ""): Slice => ({ name, rating: 0, reasoning: "" });
 
 export const emptyWheel = (title: string): Wheel => ({
   title,

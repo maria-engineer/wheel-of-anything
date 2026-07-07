@@ -3,21 +3,20 @@ import { useState } from "react";
 import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
 import { QuestionScreen } from "../components/QuestionScreen";
-import { RateSliceStep } from "../components/RateSliceStep";
 import { Field, TextInput } from "../components/ui";
+import { WheelPhaseScreen } from "../components/wheel/WheelPhaseScreen";
 import { BranchStep } from "../components/steps/BranchStep";
 import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
 import { ChoicesCompareStep } from "../components/steps/ChoicesCompareStep";
 import { FutureSelectStep } from "../components/steps/FutureSelectStep";
 import { ResultsStep } from "../components/steps/ResultsStep";
 import { useWheel } from "../context/WheelContext";
-import { SLICE_COUNT } from "../types";
 import { Step } from "../context/flowTypes";
 
 const stepProgress = (step: Step): number => {
   const order: Record<Step["kind"], number> = {
     title: 0,
-    setupSlices: 1,
+    setupWheel: 1,
     rateNow: 2,
     branch: 3,
     choicesSetup: 4,
@@ -37,53 +36,66 @@ const stepKey = (step: Step): string => JSON.stringify(step);
 const IndexPage: React.FC<PageProps> = () => {
   const { state, dispatch } = useWheel();
   const { appData, step, decreaseQueue, selectedSliceIndices } = state;
+  const nowValues = appData.nowWheel.slices.map((s) => s.rating);
 
   return (
     <Layout progress={stepProgress(step)}>
       <div key={stepKey(step)}>
         {step.kind === "title" && <TitleStep onSubmit={(title) => dispatch({ type: "SET_TITLE", title })} />}
 
-        {step.kind === "setupSlices" && (
-          <SetupSliceStep
-            index={step.index}
-            wheelTitle={appData.title}
-            onSubmit={(name) => dispatch({ type: "SET_SLICE_NAME", index: step.index, name })}
+        {step.kind === "setupWheel" && (
+          <WheelPhaseScreen
+            title={`Name 8 areas of your Wheel of ${appData.title}`}
+            subtitle="Click a wedge to name that area."
+            mode="name"
+            slices={appData.nowWheel.slices}
+            onNameChange={(index, name) => dispatch({ type: "SET_SLICE_NAME", index, name })}
+            onContinue={() => dispatch({ type: "SUBMIT_SETUP" })}
           />
         )}
 
         {step.kind === "rateNow" && (
-          <RateSliceStep
-            title={`How is "${appData.nowWheel.slices[step.index].name}" going right now?`}
-            subtitle={`Area ${step.index + 1} of ${SLICE_COUNT}`}
-            initialRating={appData.nowWheel.slices[step.index].rating}
-            initialReasoning={appData.nowWheel.slices[step.index].reasoning}
-            onSubmit={(rating, reasoning) => dispatch({ type: "RATE_NOW", index: step.index, rating, reasoning })}
+          <WheelPhaseScreen
+            title="How is each area going right now?"
+            subtitle="Click a wedge, then drag it (or type a number) to rate it 0–10, and say why."
+            mode="rate"
+            slices={appData.nowWheel.slices}
+            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "now" }, index, rating })}
+            onReason={(index, reasoning) =>
+              dispatch({ type: "REASON_SLICE", target: { wheel: "now" }, index, reasoning })
+            }
+            onContinue={() => dispatch({ type: "SUBMIT_RATE_NOW" })}
           />
         )}
 
-        {step.kind === "branch" && <BranchStep onChoose={(path) => dispatch({ type: "CHOOSE_PATH", path })} />}
+        {step.kind === "branch" && (
+          <BranchStep nowWheel={appData.nowWheel} onChoose={(path) => dispatch({ type: "CHOOSE_PATH", path })} />
+        )}
 
         {step.kind === "choicesSetup" && (
           <ChoicesSetupStep onSubmit={(names) => dispatch({ type: "SET_CHOICES", names })} />
         )}
 
         {step.kind === "choicesRate" && (
-          <RateSliceStep
-            title={`"${appData.choices[step.choiceIndex].title}": how would "${
-              appData.choices[step.choiceIndex].slices[step.sliceIndex].name
-            }" look?`}
-            subtitle={`Choice ${step.choiceIndex + 1} of ${appData.choices.length} — Area ${step.sliceIndex + 1} of ${SLICE_COUNT}`}
-            initialRating={appData.choices[step.choiceIndex].slices[step.sliceIndex].rating}
-            initialReasoning={appData.choices[step.choiceIndex].slices[step.sliceIndex].reasoning}
-            onSubmit={(rating, reasoning) =>
+          <WheelPhaseScreen
+            title={`"${appData.choices[step.choiceIndex].title}": how would each area look?`}
+            subtitle={`Choice ${step.choiceIndex + 1} of ${appData.choices.length}`}
+            mode="rate"
+            slices={appData.choices[step.choiceIndex].slices}
+            baselineValues={nowValues}
+            onRate={(index, rating) =>
+              dispatch({ type: "RATE_SLICE", target: { wheel: "choice", choiceIndex: step.choiceIndex }, index, rating })
+            }
+            onReason={(index, reasoning) =>
               dispatch({
-                type: "RATE_CHOICE_SLICE",
-                choiceIndex: step.choiceIndex,
-                sliceIndex: step.sliceIndex,
-                rating,
+                type: "REASON_SLICE",
+                target: { wheel: "choice", choiceIndex: step.choiceIndex },
+                index,
                 reasoning,
               })
             }
+            onContinue={() => dispatch({ type: "SUBMIT_CHOICE_RATE" })}
+            continueLabel={step.choiceIndex < appData.choices.length - 1 ? "Next choice" : "Compare choices"}
           />
         )}
 
@@ -92,41 +104,43 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "futureImprove" && (
-          <RateSliceStep
-            title={`Where do you want "${appData.futureWheel.slices[step.index].name}" to be?`}
-            subtitle={`Area ${step.index + 1} of ${SLICE_COUNT} — imagining the future`}
-            ratingLabel="What rating would you like it to reach?"
-            reasoningLabel="What would that look like?"
-            initialRating={
-              appData.futureWheel.slices[step.index].reasoning
-                ? appData.futureWheel.slices[step.index].rating
-                : appData.nowWheel.slices[step.index].rating
+          <WheelPhaseScreen
+            title="Where do you want each area to be?"
+            subtitle="The dark tick on each wedge shows where you are now. Fill in your ideal future."
+            mode="rate"
+            slices={appData.futureWheel.slices}
+            baselineValues={nowValues}
+            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
+            onReason={(index, reasoning) =>
+              dispatch({ type: "REASON_SLICE", target: { wheel: "future" }, index, reasoning })
             }
-            initialReasoning={appData.futureWheel.slices[step.index].reasoning}
-            onSubmit={(rating, reasoning) =>
-              dispatch({ type: "RATE_FUTURE_IMPROVE", index: step.index, rating, reasoning })
-            }
+            onContinue={() => dispatch({ type: "SUBMIT_FUTURE_IMPROVE" })}
           />
         )}
 
         {step.kind === "futureDecrease" && (
-          <RateSliceStep
-            title={`Could you accept "${appData.futureWheel.slices[decreaseQueue[step.queueIndex]].name}" being lower?`}
-            subtitle="This area didn't change — would you trade some of it away to gain elsewhere?"
-            ratingLabel="What's the lowest you'd accept?"
-            reasoningLabel="Why would that be okay?"
-            initialRating={appData.futureWheel.slices[decreaseQueue[step.queueIndex]].rating}
-            initialReasoning={appData.futureWheel.slices[decreaseQueue[step.queueIndex]].reasoning}
-            onSubmit={(rating, reasoning) =>
-              dispatch({ type: "RATE_FUTURE_DECREASE", index: decreaseQueue[step.queueIndex], rating, reasoning })
+          <WheelPhaseScreen
+            title="Where could you accept less?"
+            subtitle="These areas didn't change — would you trade some of it away to gain elsewhere?"
+            mode="rate"
+            slices={appData.futureWheel.slices}
+            interactiveIndices={decreaseQueue}
+            baselineValues={nowValues}
+            seedConfirmedFromReasoning={false}
+            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
+            onReason={(index, reasoning) =>
+              dispatch({ type: "REASON_SLICE", target: { wheel: "future" }, index, reasoning })
             }
+            onContinue={() => dispatch({ type: "SUBMIT_FUTURE_DECREASE" })}
           />
         )}
 
         {step.kind === "futureSelect" && (
           <FutureSelectStep
             appData={appData}
-            onSubmit={(indices) => dispatch({ type: "SET_SELECTED_SLICES", indices })}
+            selected={selectedSliceIndices}
+            onToggle={(index) => dispatch({ type: "TOGGLE_SELECTED_SLICE", index })}
+            onSubmit={() => dispatch({ type: "SUBMIT_FUTURE_SELECT" })}
           />
         )}
 
@@ -174,26 +188,6 @@ const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({ onSubmit }
     >
       <Field>
         <TextInput autoFocus placeholder="Life, Career, ..." value={title} onChange={(e) => setTitle(e.target.value)} />
-      </Field>
-    </QuestionScreen>
-  );
-};
-
-const SetupSliceStep: React.FC<{ index: number; wheelTitle: string; onSubmit: (name: string) => void }> = ({
-  index,
-  wheelTitle,
-  onSubmit,
-}) => {
-  const [name, setName] = useState("");
-  return (
-    <QuestionScreen
-      title={`Area ${index + 1} of ${SLICE_COUNT}`}
-      subtitle={`Name one part of your Wheel of ${wheelTitle}.`}
-      onSubmit={() => onSubmit(name.trim())}
-      canSubmit={name.trim().length > 0}
-    >
-      <Field>
-        <TextInput autoFocus placeholder="e.g. Health" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
     </QuestionScreen>
   );
