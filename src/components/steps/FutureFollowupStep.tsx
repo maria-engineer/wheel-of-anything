@@ -1,8 +1,8 @@
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { AppData } from "../../types";
-import { Title, Subtitle, Button, ButtonRow, TextInput } from "../ui";
+import { Title, Subtitle, Button, ButtonRow } from "../ui";
 import { WheelDial } from "../wheel/WheelDial";
 import { deltaColor } from "../wheel/deltaColor";
 
@@ -19,6 +19,7 @@ const PanelWrap = styled.div`
   width: 100%;
   max-width: 340px;
   min-height: 340px;
+  max-height: 340px;
   margin-top: 12px;
   padding: 20px;
   border-radius: 12px;
@@ -37,6 +38,8 @@ const EmptyPanel = styled.div`
 
 const Thread = styled.div`
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -52,19 +55,34 @@ const Bubble = styled.div<{ $mine?: boolean }>`
   border-bottom-right-radius: ${({ $mine }) => ($mine ? "4px" : "14px")};
   border-bottom-left-radius: ${({ $mine }) => ($mine ? "14px" : "4px")};
   padding: 10px 14px;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   line-height: 1.4;
 `;
 
 const Composer = styled.form`
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-end;
 `;
 
-const ComposerInput = styled(TextInput)`
+const ComposerInput = styled.textarea`
   flex: 1;
-  font-size: 1rem;
+  resize: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border: none;
+  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  background: transparent;
+  padding: 8px 0;
+  color: ${({ theme }) => theme.colors.text};
+  max-height: calc(1.4em * 3 + 16px);
+  overflow-y: auto;
+
+  &:focus {
+    outline: none;
+    border-bottom-color: ${({ theme }) => theme.colors.accent};
+  }
 `;
 
 const SendButton = styled(Button)`
@@ -197,6 +215,19 @@ const FollowupChat: React.FC<FollowupChatProps> = ({ appData, index, onAnswer, o
   const nextQuestion = answered.length === 0 ? question1 : answered.length === 1 && question2 ? question2 : null;
 
   const [draft, setDraft] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
+  useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
+  }, [answered.length, nextQuestion]);
 
   const submit = () => {
     if (!draft.trim() || !nextQuestion) return;
@@ -206,7 +237,7 @@ const FollowupChat: React.FC<FollowupChatProps> = ({ appData, index, onAnswer, o
 
   return (
     <>
-      <Thread>
+      <Thread ref={threadRef}>
         {answered.map((qa, i) => (
           <React.Fragment key={i}>
             <Bubble>{qa.question}</Bubble>
@@ -219,10 +250,18 @@ const FollowupChat: React.FC<FollowupChatProps> = ({ appData, index, onAnswer, o
       {nextQuestion && (
         <Composer onSubmit={(e) => (e.preventDefault(), submit())}>
           <ComposerInput
+            ref={textareaRef}
             autoFocus
+            rows={1}
             placeholder="Type your answer…"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
           />
           <SendButton type="submit" disabled={!draft.trim()}>
             Send

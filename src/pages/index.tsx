@@ -1,6 +1,6 @@
 import * as React from "react";
-import { useState } from "react";
-import styled from "styled-components";
+import { useEffect, useState } from "react";
+import styled, { keyframes } from "styled-components";
 import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
 import { SaveLoadBar } from "../components/SaveLoadBar";
@@ -246,21 +246,93 @@ const InlineInput = styled.input`
   }
 `;
 
+const InputWrap = styled.span`
+  position: relative;
+  display: inline-flex;
+  min-width: 180px;
+`;
+
+const blink = keyframes`
+  50% { opacity: 0; }
+`;
+
+const PlaceholderOverlay = styled.span`
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0 0 2px;
+  font-size: 2rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.muted};
+  white-space: nowrap;
+  pointer-events: none;
+`;
+
+const Cursor = styled.span`
+  display: inline-block;
+  width: 2px;
+  margin-left: 2px;
+  background: currentColor;
+  animation: ${blink} 1s step-end infinite;
+`;
+
+const PLACEHOLDER_WORDS = ["Life", "Career", "Anything"];
+
+const useTypewriter = (words: string[]): string => {
+  const [text, setText] = useState("");
+  const [wordIndex, setWordIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentWord = words[wordIndex % words.length];
+    let delay = deleting ? 40 : 90;
+
+    if (!deleting && text === currentWord) {
+      delay = 1200;
+    } else if (deleting && text === "") {
+      delay = 300;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (!deleting && text === currentWord) {
+        setDeleting(true);
+      } else if (deleting && text === "") {
+        setDeleting(false);
+        setWordIndex((i) => (i + 1) % words.length);
+      } else {
+        setText((t) => (deleting ? currentWord.slice(0, t.length - 1) : currentWord.slice(0, t.length + 1)));
+      }
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [text, deleting, wordIndex, words]);
+
+  return text;
+};
+
 const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
+  const animatedPlaceholder = useTypewriter(PLACEHOLDER_WORDS);
   const submit = () => title.trim() && onSubmit(title.trim());
   return (
     <form onSubmit={(e) => (e.preventDefault(), submit())}>
       <TitleLine>
         Wheel of
-        <InlineInput
-          autoFocus
-          placeholder="Life, Career, ..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <InputWrap>
+          <InlineInput
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          {title === "" && (
+            <PlaceholderOverlay aria-hidden="true">
+              {animatedPlaceholder}
+              <Cursor />
+            </PlaceholderOverlay>
+          )}
+        </InputWrap>
       </TitleLine>
       <Subtitle>
         <p>

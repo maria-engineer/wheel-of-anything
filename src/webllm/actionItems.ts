@@ -19,7 +19,8 @@ const getEngine = (onProgress?: (text: string) => void): Promise<MLCEngine> => {
 };
 
 const buildPrompt = (storyText: string): string =>
-  `You are helping someone turn journal-style reflections into a short list concrete action items. Limit how much you infer from the journal like entries, and only extract action items from what is mentioned. 
+  `You are helping someone turn journal-style reflections into a short list concrete action items. 
+All action items need to be something a person can reasonably do, and be actionable.
 Read the notes below, where each area is followed by how the person rated it and why.
 
 ${storyText}
