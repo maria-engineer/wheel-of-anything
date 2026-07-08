@@ -33,8 +33,8 @@ export const ChoicesCompareStep: React.FC<{ appData: AppData; onRestart: () => v
       <Title>Here's how each choice compares.</Title>
       <Subtitle>
         {best
-          ? `On average, "${best.title}" scores highest — but look at which specific areas matter most to you. Hover a wheel's areas for the full reasoning.`
-          : "Add a choice to see how it compares."}
+          ? `On average, "${best.title}" scores highest, but not all areas may be weighed the same. Have a look at the way each choice would shape your life and wonder, which version is the most preferable?`
+          : `On average your choices look pretty similar, but not all areas may be weighed the same. Have a look at the way each choice would shape your life and wonder, which version is the most preferable?`}
       </Subtitle>
       <Row>
         <WheelColumn>

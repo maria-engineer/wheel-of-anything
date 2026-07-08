@@ -4,6 +4,7 @@ import { WheelDial, WheelSliceDatum } from "./WheelDial";
 import { ScreenLayout, PhaseRow, PanelWrap, PanelHeading, HintText } from "./WheelPhaseLayout";
 import { useWheelSelection } from "./useWheelSelection";
 import { Title, Subtitle, Button, ButtonRow } from "../ui";
+import { deltaColor } from "./deltaColor";
 
 const NumberRow = styled.div`
   display: flex;

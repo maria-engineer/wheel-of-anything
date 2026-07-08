@@ -15,6 +15,7 @@ import { FutureFollowupStep } from "../components/steps/FutureFollowupStep";
 import { ResultsStep } from "../components/steps/ResultsStep";
 import { useWheel } from "../context/WheelContext";
 import { Step } from "../context/flowTypes";
+import { deltaColor } from "../components/wheel/deltaColor";
 
 const stepProgress = (step: Step): number => {
   const order: Record<Step["kind"], number> = {
@@ -93,6 +94,7 @@ const IndexPage: React.FC<PageProps> = () => {
             onRate={(index, rating) =>
               dispatch({ type: "RATE_SLICE", target: { wheel: "choice", choiceIndex: step.choiceIndex }, index, rating })
             }
+            colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
             onContinue={() => dispatch({ type: "SUBMIT_CHOICE_RATE" })}
             continueLabel={step.choiceIndex < appData.choices.length - 1 ? "Next choice" : "Compare choices"}
           />
