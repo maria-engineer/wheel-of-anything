@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { AppData } from "../../types";
 import { Title, Subtitle, Button } from "../ui";
@@ -47,18 +47,10 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
 }) => {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "unavailable">("idle");
   const [progressText, setProgressText] = useState("");
-  const started = useRef(false);
   const nowValues = appData.nowWheel.slices.map((s) => s.rating);
+  const webGPUSupported = isWebGPUSupported();
 
-  useEffect(() => {
-    if (started.current || appData.actionItems.length > 0) return;
-    started.current = true;
-
-    if (!isWebGPUSupported()) {
-      setStatus("unavailable");
-      return;
-    }
-
+  const runSuggestions = () => {
     setStatus("loading");
     const story = buildStoryText(appData, selectedSliceIndices);
     generateActionItems(story, setProgressText).then((items) => {
@@ -69,8 +61,7 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
         setStatus("unavailable");
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
   return (
     <div>
@@ -95,10 +86,22 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
       <Subtitle as="h2" style={{ marginTop: 32 }}>
         Action items
       </Subtitle>
+      {status === "idle" && appData.actionItems.length === 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <Button onClick={runSuggestions} disabled={!webGPUSupported}>
+            Suggest action items
+          </Button>
+          {!webGPUSupported && (
+            <StatusText>
+              This browser doesn't support automatic action item generation. Try Google Chrome, or type your own action items.
+            </StatusText>
+          )}
+        </div>
+      )}
       {status === "loading" && <StatusText>Thinking it through locally in your browser{progressText ? ` — ${progressText}` : "…"}</StatusText>}
       {status === "unavailable" && (
         <StatusText>
-          This browser can't run the local model for suggestions, so add your own action items below.
+          Couldn't generate suggestions, so add your own action items below.
         </StatusText>
       )}
       <ActionItemList

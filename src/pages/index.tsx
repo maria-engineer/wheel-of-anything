@@ -142,6 +142,7 @@ const IndexPage: React.FC<PageProps> = () => {
             slices={appData.futureWheel.slices}
             baselineValues={nowValues}
             mustRateAll={false}
+            colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
             onRate={(index, rating) =>
               dispatch({
                 type: "RATE_SLICE",
@@ -162,6 +163,7 @@ const IndexPage: React.FC<PageProps> = () => {
             interactiveIndices={decreaseQueue}
             baselineValues={nowValues}
             mustRateAll={false}
+            colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
             onRate={(index, rating) =>
               dispatch({
                 type: "RATE_SLICE",

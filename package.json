@@ -1,9 +1,9 @@
 {
   "name": "wheel-of-anything",
   "version": "1.0.0",
-  "private": true,
   "description": "wheel-of-anything",
   "author": "maria-engineer",
+  "license": "MIT",
   "keywords": [
     "gatsby",
     "wheel of life",
