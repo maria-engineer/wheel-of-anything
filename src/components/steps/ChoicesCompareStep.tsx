@@ -16,6 +16,11 @@ const WheelColumn = styled.div`
   text-align: center;
 `;
 
+const ButtonWrap = styled.div`
+  margin-top: 32px;
+  text-align: center;
+`;
+
 const average = (values: number[]): number => values.reduce((a, b) => a + b, 0) / values.length;
 
 export const ChoicesCompareStep: React.FC<{ appData: AppData; onRestart: () => void }> = ({
@@ -54,9 +59,9 @@ export const ChoicesCompareStep: React.FC<{ appData: AppData; onRestart: () => v
           </WheelColumn>
         ))}
       </Row>
-      <Button style={{ marginTop: 32 }} onClick={onRestart}>
-        Start a new wheel
-      </Button>
+      <ButtonWrap>
+        <Button onClick={onRestart}>Start a new wheel</Button>
+      </ButtonWrap>
     </div>
   );
 };

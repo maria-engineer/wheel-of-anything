@@ -50,19 +50,27 @@ const IndexPage: React.FC<PageProps> = () => {
         <SaveLoadBar
           state={state}
           showImport={step.kind === "title"}
-          onImport={(imported) => dispatch({ type: "RESTORE", state: imported })}
+          onImport={(imported) =>
+            dispatch({ type: "RESTORE", state: imported })
+          }
         />
       }
     >
       <div key={stepKey(step)}>
-        {step.kind === "title" && <TitleStep onSubmit={(title) => dispatch({ type: "SET_TITLE", title })} />}
+        {step.kind === "title" && (
+          <TitleStep
+            onSubmit={(title) => dispatch({ type: "SET_TITLE", title })}
+          />
+        )}
 
         {step.kind === "setupWheel" && (
           <WheelNameScreen
             title={`Name 8 areas of your Wheel of ${appData.title}`}
             subtitle="Click a wedge to name that area."
             slices={appData.nowWheel.slices}
-            onNameChange={(index, name) => dispatch({ type: "SET_SLICE_NAME", index, name })}
+            onNameChange={(index, name) =>
+              dispatch({ type: "SET_SLICE_NAME", index, name })
+            }
             onContinue={() => dispatch({ type: "SUBMIT_SETUP" })}
           />
         )}
@@ -72,17 +80,30 @@ const IndexPage: React.FC<PageProps> = () => {
             title="How is each area going right now?"
             subtitle="Click on an area to rate it according to how you feel it's going right now."
             slices={appData.nowWheel.slices}
-            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "now" }, index, rating })}
+            mustRateAll={true}
+            onRate={(index, rating) =>
+              dispatch({
+                type: "RATE_SLICE",
+                target: { wheel: "now" },
+                index,
+                rating,
+              })
+            }
             onContinue={() => dispatch({ type: "SUBMIT_RATE_NOW" })}
           />
         )}
 
         {step.kind === "branch" && (
-          <BranchStep nowWheel={appData.nowWheel} onChoose={(path) => dispatch({ type: "CHOOSE_PATH", path })} />
+          <BranchStep
+            nowWheel={appData.nowWheel}
+            onChoose={(path) => dispatch({ type: "CHOOSE_PATH", path })}
+          />
         )}
 
         {step.kind === "choicesSetup" && (
-          <ChoicesSetupStep onSubmit={(names) => dispatch({ type: "SET_CHOICES", names })} />
+          <ChoicesSetupStep
+            onSubmit={(names) => dispatch({ type: "SET_CHOICES", names })}
+          />
         )}
 
         {step.kind === "choicesRate" && (
@@ -91,26 +112,47 @@ const IndexPage: React.FC<PageProps> = () => {
             subtitle={`Choice ${step.choiceIndex + 1} of ${appData.choices.length}`}
             slices={appData.choices[step.choiceIndex].slices}
             baselineValues={nowValues}
+            mustRateAll={true}
             onRate={(index, rating) =>
-              dispatch({ type: "RATE_SLICE", target: { wheel: "choice", choiceIndex: step.choiceIndex }, index, rating })
+              dispatch({
+                type: "RATE_SLICE",
+                target: { wheel: "choice", choiceIndex: step.choiceIndex },
+                index,
+                rating,
+              })
             }
             colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
             onContinue={() => dispatch({ type: "SUBMIT_CHOICE_RATE" })}
-            continueLabel={step.choiceIndex < appData.choices.length - 1 ? "Next choice" : "Compare choices"}
+            continueLabel={
+              step.choiceIndex < appData.choices.length - 1
+                ? "Next choice"
+                : "Compare choices"
+            }
           />
         )}
 
         {step.kind === "choicesCompare" && (
-          <ChoicesCompareStep appData={appData} onRestart={() => dispatch({ type: "RESET" })} />
+          <ChoicesCompareStep
+            appData={appData}
+            onRestart={() => dispatch({ type: "RESET" })}
+          />
         )}
 
         {step.kind === "futureImprove" && (
           <WheelRateScreen
-            title="Where do you want each area to be?"
-            subtitle="The dark tick on each wedge shows where you are now. Fill in your ideal future."
+            title="Which areas do you want to improve, and by how much?"
+            subtitle="Rate each area based on how you want or need it to improve in the future."
             slices={appData.futureWheel.slices}
             baselineValues={nowValues}
-            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
+            mustRateAll={false}
+            onRate={(index, rating) =>
+              dispatch({
+                type: "RATE_SLICE",
+                target: { wheel: "future" },
+                index,
+                rating,
+              })
+            }
             onContinue={() => dispatch({ type: "SUBMIT_FUTURE_IMPROVE" })}
           />
         )}
@@ -118,11 +160,19 @@ const IndexPage: React.FC<PageProps> = () => {
         {step.kind === "futureDecrease" && (
           <WheelRateScreen
             title="Where could you accept less?"
-            subtitle="These areas didn't change — would you trade some of it away to gain elsewhere?"
+            subtitle="You didn't move these areas in the last step. While we may not always want to decrease how an area is doing at times, we may be willing to allow an area to decrease, if it gives us the space to grow in other areas. Think about the areas that you haven't increased in the previous step and where you'd be willing to make some room."
             slices={appData.futureWheel.slices}
             interactiveIndices={decreaseQueue}
             baselineValues={nowValues}
-            onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
+            mustRateAll={false}
+            onRate={(index, rating) =>
+              dispatch({
+                type: "RATE_SLICE",
+                target: { wheel: "future" },
+                index,
+                rating,
+              })
+            }
             onContinue={() => dispatch({ type: "SUBMIT_FUTURE_DECREASE" })}
           />
         )}
@@ -131,7 +181,9 @@ const IndexPage: React.FC<PageProps> = () => {
           <FutureSelectStep
             appData={appData}
             selected={selectedSliceIndices}
-            onToggle={(index) => dispatch({ type: "TOGGLE_SELECTED_SLICE", index })}
+            onToggle={(index) =>
+              dispatch({ type: "TOGGLE_SELECTED_SLICE", index })
+            }
             onSubmit={() => dispatch({ type: "SUBMIT_FUTURE_SELECT" })}
           />
         )}
@@ -141,7 +193,11 @@ const IndexPage: React.FC<PageProps> = () => {
             appData={appData}
             index={selectedSliceIndices[step.queueIndex]}
             onSubmit={(answer) =>
-              dispatch({ type: "ANSWER_FOLLOWUP", index: selectedSliceIndices[step.queueIndex], answer })
+              dispatch({
+                type: "ANSWER_FOLLOWUP",
+                index: selectedSliceIndices[step.queueIndex],
+                answer,
+              })
             }
           />
         )}
@@ -150,13 +206,23 @@ const IndexPage: React.FC<PageProps> = () => {
           <ResultsStep
             appData={appData}
             selectedSliceIndices={selectedSliceIndices}
-            onToggleActionItem={(id) => dispatch({ type: "TOGGLE_ACTION_ITEM", id })}
-            onDeleteActionItem={(id) => dispatch({ type: "DELETE_ACTION_ITEM", id })}
-            onAddActionItem={(text) => dispatch({ type: "ADD_ACTION_ITEM", text })}
+            onToggleActionItem={(id) =>
+              dispatch({ type: "TOGGLE_ACTION_ITEM", id })
+            }
+            onDeleteActionItem={(id) =>
+              dispatch({ type: "DELETE_ACTION_ITEM", id })
+            }
+            onAddActionItem={(text) =>
+              dispatch({ type: "ADD_ACTION_ITEM", text })
+            }
             onSetActionItems={(items) =>
               dispatch({
                 type: "SET_ACTION_ITEMS",
-                items: items.map((text, i) => ({ id: i + 1, text, state: "TODO" as const })),
+                items: items.map((text, i) => ({
+                  id: i + 1,
+                  text,
+                  state: "TODO" as const,
+                })),
               })
             }
             onRestart={() => dispatch({ type: "RESET" })}
@@ -193,7 +259,9 @@ const InlineInput = styled.input`
   }
 `;
 
-const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({ onSubmit }) => {
+const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({
+  onSubmit,
+}) => {
   const [title, setTitle] = useState("");
   const submit = () => title.trim() && onSubmit(title.trim());
   return (

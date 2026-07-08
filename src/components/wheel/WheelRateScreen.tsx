@@ -37,6 +37,7 @@ interface WheelRateScreenProps {
   onRate: (index: number, rating: number) => void;
   onContinue: () => void;
   continueLabel?: string;
+  mustRateAll: boolean;
 }
 
 export const WheelRateScreen: React.FC<WheelRateScreenProps> = ({
@@ -49,6 +50,7 @@ export const WheelRateScreen: React.FC<WheelRateScreenProps> = ({
   onRate,
   onContinue,
   continueLabel = "Continue",
+  mustRateAll = true,
 }) => {
   const eligible = interactiveIndices ?? slices.map((_, i) => i);
   const { confirmed, activeIndex, setActiveIndex, allDone, confirm } = useWheelSelection(eligible, []);
@@ -78,7 +80,7 @@ export const WheelRateScreen: React.FC<WheelRateScreenProps> = ({
       </PhaseRow> 
 
       <ButtonRow>
-        <Button type="button" disabled={!allDone} onClick={onContinue}>
+        <Button type="button" disabled={mustRateAll && !allDone} onClick={onContinue}>
           {continueLabel}
         </Button>
       </ButtonRow>
