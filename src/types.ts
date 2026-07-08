@@ -35,8 +35,7 @@ export type Step =
   | { kind: "choicesCompare" }
   | { kind: "futureImprove" }
   | { kind: "futureDecrease" }
-  | { kind: "futureSelect" }
-  | { kind: "futureFollowup"; queueIndex: number }
+  | { kind: "futureFollowup" }
   | { kind: "results" };
 
 export interface AppData {

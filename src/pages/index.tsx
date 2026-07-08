@@ -10,7 +10,6 @@ import { WheelRateScreen } from "../components/wheel/WheelRateScreen";
 import { BranchStep } from "../components/steps/BranchStep";
 import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
 import { ChoicesCompareStep } from "../components/steps/ChoicesCompareStep";
-import { FutureSelectStep } from "../components/steps/FutureSelectStep";
 import { FutureFollowupStep } from "../components/steps/FutureFollowupStep";
 import { ResultsStep } from "../components/steps/ResultsStep";
 import { useWheel } from "../context/WheelContext";
@@ -28,11 +27,10 @@ const stepProgress = (step: Step): number => {
     choicesCompare: 6,
     futureImprove: 4,
     futureDecrease: 5,
-    futureSelect: 6,
-    futureFollowup: 7,
-    results: 8,
+    futureFollowup: 6,
+    results: 7,
   };
-  return order[step.kind] / 8;
+  return order[step.kind] / 7;
 };
 
 const stepKey = (step: Step): string => JSON.stringify(step);
@@ -49,7 +47,6 @@ const IndexPage: React.FC<PageProps> = () => {
       topBar={
         <SaveLoadBar
           state={state}
-          showImport={step.kind === "title"}
           onImport={(imported) =>
             dispatch({ type: "RESTORE", state: imported })
           }
@@ -65,8 +62,8 @@ const IndexPage: React.FC<PageProps> = () => {
 
         {step.kind === "setupWheel" && (
           <WheelNameScreen
-            title={`Name 8 areas of your Wheel of ${appData.title}`}
-            subtitle="Click a wedge to name that area."
+            title={`Name the areas of your Wheel of ${appData.title}`}
+            subtitle="Let's think of the 8 most important areas to your wheel. Not everyone cares about the same things or split the wheel the same. You may have Friends and Family as two different areas in a Wheel of Life, while I may group them both under Community. Fill it according to what you value."
             slices={appData.nowWheel.slices}
             onNameChange={(index, name) =>
               dispatch({ type: "SET_SLICE_NAME", index, name })
@@ -177,28 +174,16 @@ const IndexPage: React.FC<PageProps> = () => {
           />
         )}
 
-        {step.kind === "futureSelect" && (
-          <FutureSelectStep
-            appData={appData}
-            selected={selectedSliceIndices}
-            onToggle={(index) =>
-              dispatch({ type: "TOGGLE_SELECTED_SLICE", index })
-            }
-            onSubmit={() => dispatch({ type: "SUBMIT_FUTURE_SELECT" })}
-          />
-        )}
-
         {step.kind === "futureFollowup" && (
           <FutureFollowupStep
             appData={appData}
-            index={selectedSliceIndices[step.queueIndex]}
-            onSubmit={(answer) =>
-              dispatch({
-                type: "ANSWER_FOLLOWUP",
-                index: selectedSliceIndices[step.queueIndex],
-                answer,
-              })
+            selected={selectedSliceIndices}
+            onSelect={(index) => dispatch({ type: "SELECT_SLICE", index })}
+            onDeselect={(index) => dispatch({ type: "DESELECT_SLICE", index })}
+            onAnswer={(index, block) =>
+              dispatch({ type: "ANSWER_FOLLOWUP", index, answer: block })
             }
+            onSubmit={() => dispatch({ type: "SUBMIT_FUTURE_FOLLOWUP" })}
           />
         )}
 
@@ -275,7 +260,17 @@ const TitleStep: React.FC<{ onSubmit: (title: string) => void }> = ({
           onChange={(e) => setTitle(e.target.value)}
         />
       </TitleLine>
-      <Subtitle>Press Enter to submit</Subtitle>
+      <Subtitle>
+        <p>
+          Welcome to the Wheel of Anything! An exercise you can use when you are
+          stuck. It can help you look at what is important to you, how you're
+          currently doing and then use that information to either make a
+          decision between the choices you currently have in front of you, or
+          brainstorm future actions based on the changes you want to see in the
+          future. It can be generic, life, or specific, career.{" "}
+        </p>
+        <p>Make your choice, and press Enter when you're ready to begin.</p>
+      </Subtitle>
     </form>
   );
 };

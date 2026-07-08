@@ -8,6 +8,7 @@ import { deltaColor } from "../wheel/deltaColor";
 import { ActionItemList } from "../ActionItemList";
 import { generateActionItems, isWebGPUSupported } from "../../webllm/actionItems";
 import { buildStoryText } from "../../utils/buildStory";
+import { ButtonWrap } from "./ChoicesCompareStep";
 
 const ChartsRow = styled.div`
   display: flex;
@@ -106,9 +107,9 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
         onDelete={onDeleteActionItem}
         onAdd={onAddActionItem}
       />
-      <Button variant="secondary" style={{ marginTop: 24 }} onClick={onRestart}>
-        Start a new wheel
-      </Button>
+      <ButtonWrap>
+              <Button onClick={onRestart}>Start a new wheel</Button>
+      </ButtonWrap>
     </div>
   );
 };

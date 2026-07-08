@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import styled from "styled-components";
 import { AppData } from "../../types";
-import { Title, Button, ButtonRow, TextInput } from "../ui";
+import { Title, Subtitle, Button, ButtonRow, TextInput } from "../ui";
 import { WheelDial } from "../wheel/WheelDial";
 import { deltaColor } from "../wheel/deltaColor";
 
@@ -17,39 +17,175 @@ const Row = styled.div`
 
 const PanelWrap = styled.div`
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
+  min-height: 340px;
   margin-top: 12px;
   padding: 20px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.surface};
   border: 1px solid ${({ theme }) => theme.colors.border};
+  display: flex;
+  flex-direction: column;
 `;
 
-const Bubble = styled.p`
-  background: ${({ theme }) => theme.colors.background};
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin: 0 0 12px;
-`;
-
-const AnsweredBubble = styled(Bubble)`
-  background: transparent;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+const EmptyPanel = styled.div`
+  margin: auto;
+  text-align: center;
   color: ${({ theme }) => theme.colors.muted};
+  font-size: 0.95rem;
 `;
+
+const Thread = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const Bubble = styled.div<{ $mine?: boolean }>`
+  max-width: 85%;
+  align-self: ${({ $mine }) => ($mine ? "flex-end" : "flex-start")};
+  background: ${({ theme, $mine }) => ($mine ? theme.colors.accent : theme.colors.background)};
+  color: ${({ theme, $mine }) => ($mine ? theme.colors.accentText : theme.colors.text)};
+  border-radius: 14px;
+  border-bottom-right-radius: ${({ $mine }) => ($mine ? "4px" : "14px")};
+  border-bottom-left-radius: ${({ $mine }) => ($mine ? "14px" : "4px")};
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+`;
+
+const Composer = styled.form`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ComposerInput = styled(TextInput)`
+  flex: 1;
+  font-size: 1rem;
+`;
+
+const SendButton = styled(Button)`
+  padding: 10px 16px;
+  white-space: nowrap;
+`;
+
+const DoneTag = styled.p`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+`;
+
+const RemoveLink = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: flex-start;
+  padding: 0;
+  margin-top: 12px;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+interface QA {
+  question: string;
+  answer: string;
+}
+
+const parseReasoning = (reasoning: string): QA[] =>
+  reasoning
+    ? reasoning.split("\n\n").map((block) => {
+        const [qLine, ...rest] = block.split("\n");
+        return { question: qLine.replace(/^Q:\s*/, ""), answer: rest.join("\n").replace(/^A:\s*/, "") };
+      })
+    : [];
 
 interface FutureFollowupStepProps {
   appData: AppData;
-  index: number;
-  onSubmit: (answer: string) => void;
+  selected: number[];
+  onSelect: (index: number) => void;
+  onDeselect: (index: number) => void;
+  onAnswer: (index: number, block: string) => void;
+  onSubmit: () => void;
 }
 
-export const FutureFollowupStep: React.FC<FutureFollowupStepProps> = ({ appData, index, onSubmit }) => {
+export const FutureFollowupStep: React.FC<FutureFollowupStepProps> = ({
+  appData,
+  selected,
+  onSelect,
+  onDeselect,
+  onAnswer,
+  onSubmit,
+}) => {
+  const nowValues = appData.nowWheel.slices.map((s) => s.rating);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const activate = (index: number) => {
+    onSelect(index);
+    setActiveIndex(index);
+  };
+
+  return (
+    <div>
+      <Title>Now and Future, overlapped.</Title>
+      <Subtitle>
+        Click an area you want to reflect on. The dark tick shows where you are now — answer the questions on the
+        right to dig into why, and what could change.
+      </Subtitle>
+      <Row>
+        <WheelDial
+          slices={appData.futureWheel.slices.map((s, i) => ({ ...s, baseline: nowValues[i] }))}
+          mode="select"
+          activeIndex={activeIndex}
+          selected={selected}
+          colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
+          onActivate={activate}
+        />
+        <PanelWrap>
+          {activeIndex === null ? (
+            <EmptyPanel>Click a wedge on the wheel to start reflecting on it.</EmptyPanel>
+          ) : (
+            <FollowupChat
+              key={activeIndex}
+              appData={appData}
+              index={activeIndex}
+              onAnswer={onAnswer}
+              onRemove={() => {
+                onDeselect(activeIndex);
+                setActiveIndex(null);
+              }}
+            />
+          )}
+        </PanelWrap>
+      </Row>
+      <ButtonRow>
+        <Button onClick={onSubmit}>Continue</Button>
+      </ButtonRow>
+    </div>
+  );
+};
+
+interface FollowupChatProps {
+  appData: AppData;
+  index: number;
+  onAnswer: (index: number, block: string) => void;
+  onRemove: () => void;
+}
+
+const FollowupChat: React.FC<FollowupChatProps> = ({ appData, index, onAnswer, onRemove }) => {
   const now = appData.nowWheel.slices[index];
   const future = appData.futureWheel.slices[index];
   const name = future.name || now.name;
-  const nowValues = appData.nowWheel.slices.map((s) => s.rating);
 
+  const question1 = `What is contributing to the current ${now.rating} rating of "${name}"?`;
   const question2 =
     future.rating > now.rating
       ? "What could you do to help you improve this rating?"
@@ -57,78 +193,45 @@ export const FutureFollowupStep: React.FC<FutureFollowupStepProps> = ({ appData,
       ? `What could you give up on in terms of "${name}"?`
       : null;
 
-  const [answer1, setAnswer1] = useState("");
-  const [submittedFirst, setSubmittedFirst] = useState(false);
-  const [answer2, setAnswer2] = useState("");
+  const answered = parseReasoning(future.reasoning);
+  const nextQuestion = answered.length === 0 ? question1 : answered.length === 1 && question2 ? question2 : null;
 
-  const finish = (a1: string, a2: string) => {
-    const parts = [`Q: What is contributing to the current ${now.rating} rating of "${name}"?\nA: ${a1}`];
-    if (question2) parts.push(`Q: ${question2}\nA: ${a2}`);
-    onSubmit(parts.join("\n\n"));
-  };
+  const [draft, setDraft] = useState("");
 
-  const submitFirst = () => {
-    if (!answer1.trim()) return;
-    if (question2) setSubmittedFirst(true);
-    else finish(answer1.trim(), "");
-  };
-
-  const submitSecond = () => {
-    if (!answer2.trim()) return;
-    finish(answer1.trim(), answer2.trim());
+  const submit = () => {
+    if (!draft.trim() || !nextQuestion) return;
+    onAnswer(index, `Q: ${nextQuestion}\nA: ${draft.trim()}`);
+    setDraft("");
   };
 
   return (
-    <div>
-      <Title>Let's dig into "{name}"</Title>
-      <Row>
-        <WheelDial
-          slices={appData.futureWheel.slices.map((s, i) => ({ ...s, baseline: nowValues[i] }))}
-          mode="view"
-          activeIndex={index}
-          colorForIndex={(i, slice) => deltaColor(nowValues[i], slice.rating)}
-        />
-        <PanelWrap>
-          <Bubble>What is contributing to the current {now.rating} rating of "{name}"?</Bubble>
-          {!submittedFirst ? (
-            <>
-              <TextInput
-                autoFocus
-                placeholder="What's going on here?"
-                value={answer1}
-                onChange={(e) => setAnswer1(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitFirst()}
-              />
-              <ButtonRow>
-                <Button type="button" disabled={!answer1.trim()} onClick={submitFirst}>
-                  {question2 ? "Next" : "Continue"}
-                </Button>
-              </ButtonRow>
-            </>
-          ) : (
-            <>
-              <AnsweredBubble>{answer1}</AnsweredBubble>
-              {question2 && (
-                <>
-                  <Bubble>{question2}</Bubble>
-                  <TextInput
-                    autoFocus
-                    placeholder="What's one thing that would help?"
-                    value={answer2}
-                    onChange={(e) => setAnswer2(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submitSecond()}
-                  />
-                  <ButtonRow>
-                    <Button type="button" disabled={!answer2.trim()} onClick={submitSecond}>
-                      Continue
-                    </Button>
-                  </ButtonRow>
-                </>
-              )}
-            </>
-          )}
-        </PanelWrap>
-      </Row>
-    </div>
+    <>
+      <Thread>
+        {answered.map((qa, i) => (
+          <React.Fragment key={i}>
+            <Bubble>{qa.question}</Bubble>
+            <Bubble $mine>{qa.answer}</Bubble>
+          </React.Fragment>
+        ))}
+        {nextQuestion && <Bubble>{nextQuestion}</Bubble>}
+        {!nextQuestion && <DoneTag>You've explored this one. Click another wedge, or continue.</DoneTag>}
+      </Thread>
+      {nextQuestion && (
+        <Composer onSubmit={(e) => (e.preventDefault(), submit())}>
+          <ComposerInput
+            autoFocus
+            placeholder="Type your answer…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <SendButton type="submit" disabled={!draft.trim()}>
+            Send
+          </SendButton>
+        </Composer>
+      )}
+      <RemoveLink type="button" onClick={onRemove}>
+        Remove from selection
+      </RemoveLink>
+    </>
   );
 };

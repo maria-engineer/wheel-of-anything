@@ -8,7 +8,7 @@ export interface FlowState {
   appData: AppData;
   path: Path | null;
   decreaseQueue: number[]; // slice indices left unchanged by the improve pass
-  selectedSliceIndices: number[]; // chosen in futureSelect, to get a follow-up question
+  selectedSliceIndices: number[]; // wedges explored in the futureFollowup step
 }
 
 export type Action =
@@ -23,9 +23,10 @@ export type Action =
   | { type: "SUBMIT_CHOICE_RATE" }
   | { type: "SUBMIT_FUTURE_IMPROVE" }
   | { type: "SUBMIT_FUTURE_DECREASE" }
-  | { type: "TOGGLE_SELECTED_SLICE"; index: number }
-  | { type: "SUBMIT_FUTURE_SELECT" }
+  | { type: "SELECT_SLICE"; index: number }
+  | { type: "DESELECT_SLICE"; index: number }
   | { type: "ANSWER_FOLLOWUP"; index: number; answer: string }
+  | { type: "SUBMIT_FUTURE_FOLLOWUP" }
   | { type: "SET_ACTION_ITEMS"; items: ActionItem[] }
   | { type: "ADD_ACTION_ITEM"; text: string }
   | { type: "TOGGLE_ACTION_ITEM"; id: number }

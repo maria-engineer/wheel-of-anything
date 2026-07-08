@@ -49,14 +49,18 @@ const LoadIcon = () => (
 
 interface SaveLoadBarProps {
   state: FlowState;
-  showImport: boolean;
   onImport: (state: FlowState) => void;
 }
 
-export const SaveLoadBar: React.FC<SaveLoadBarProps> = ({ state, showImport, onImport }) => {
+export const SaveLoadBar: React.FC<SaveLoadBarProps> = ({
+  state,
+  onImport,
+}) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -66,21 +70,29 @@ export const SaveLoadBar: React.FC<SaveLoadBarProps> = ({ state, showImport, onI
 
   return (
     <Bar>
-      {showImport && (
-        <>
-          <SmallButton title="Load wheel from file" type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-            <LoadIcon />
-          </SmallButton>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".wheel"
-            style={{ display: "none" }}
-            onChange={handleImportFile}
-          />
-        </>
-      )}
-      <SmallButton title="Download wheel" type="button" variant="secondary" onClick={() => downloadWheelFile(state)}>
+      <>
+        <SmallButton
+          title="Load wheel from file"
+          type="button"
+          variant="secondary"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <LoadIcon />
+        </SmallButton>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".wheel"
+          style={{ display: "none" }}
+          onChange={handleImportFile}
+        />
+      </>
+      <SmallButton
+        title="Download wheel"
+        type="button"
+        variant="secondary"
+        onClick={() => downloadWheelFile(state)}
+      >
         <SaveIcon />
       </SmallButton>
     </Bar>

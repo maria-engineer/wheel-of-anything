@@ -16,7 +16,7 @@ const WheelColumn = styled.div`
   text-align: center;
 `;
 
-const ButtonWrap = styled.div`
+export const ButtonWrap = styled.div`
   margin-top: 32px;
   text-align: center;
 `;

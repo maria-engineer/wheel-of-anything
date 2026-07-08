@@ -114,24 +114,30 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
       const decreaseQueue = state.appData.nowWheel.slices
         .map((nowSlice, i) => (nowSlice.rating === state.appData.futureWheel.slices[i].rating ? i : -1))
         .filter((i) => i >= 0);
-      const nextStage: Step = decreaseQueue.length > 0 ? { kind: "futureDecrease" } : { kind: "futureSelect" };
+      const nextStage: Step = decreaseQueue.length > 0 ? { kind: "futureDecrease" } : { kind: "futureFollowup" };
       return { ...state, decreaseQueue, appData: withStage(state.appData, nextStage) };
     }
 
     case "SUBMIT_FUTURE_DECREASE":
-      return { ...state, appData: withStage(state.appData, { kind: "futureSelect" }) };
+      return { ...state, appData: withStage(state.appData, { kind: "futureFollowup" }) };
 
-    case "TOGGLE_SELECTED_SLICE": {
+    case "SELECT_SLICE": {
       const selectedSliceIndices = state.selectedSliceIndices.includes(action.index)
-        ? state.selectedSliceIndices.filter((i) => i !== action.index)
+        ? state.selectedSliceIndices
         : [...state.selectedSliceIndices, action.index];
       return { ...state, selectedSliceIndices };
     }
 
-    case "SUBMIT_FUTURE_SELECT": {
-      const nextStage: Step =
-        state.selectedSliceIndices.length > 0 ? { kind: "futureFollowup", queueIndex: 0 } : { kind: "results" };
-      return { ...state, appData: withStage(state.appData, nextStage) };
+    case "DESELECT_SLICE": {
+      const selectedSliceIndices = state.selectedSliceIndices.filter((i) => i !== action.index);
+      const slices = state.appData.futureWheel.slices.map((slice, i) =>
+        i === action.index ? { ...slice, reasoning: "" } : slice
+      );
+      return {
+        ...state,
+        selectedSliceIndices,
+        appData: { ...state.appData, futureWheel: { ...state.appData.futureWheel, slices } },
+      };
     }
 
     case "ANSWER_FOLLOWUP": {
@@ -141,14 +147,14 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
           : slice
       );
       const futureWheel = { ...state.appData.futureWheel, slices };
-      const stage = state.appData.stage;
-      const queueIndex = stage.kind === "futureFollowup" ? stage.queueIndex : 0;
-      const nextStage: Step =
-        queueIndex + 1 < state.selectedSliceIndices.length
-          ? { kind: "futureFollowup", queueIndex: queueIndex + 1 }
-          : { kind: "results" };
-      return { ...state, appData: withStage({ ...state.appData, futureWheel }, nextStage) };
+      const selectedSliceIndices = state.selectedSliceIndices.includes(action.index)
+        ? state.selectedSliceIndices
+        : [...state.selectedSliceIndices, action.index];
+      return { ...state, selectedSliceIndices, appData: { ...state.appData, futureWheel } };
     }
+
+    case "SUBMIT_FUTURE_FOLLOWUP":
+      return { ...state, appData: withStage(state.appData, { kind: "results" }) };
 
     case "SET_ACTION_ITEMS":
       return { ...state, appData: { ...state.appData, actionItems: action.items } };
