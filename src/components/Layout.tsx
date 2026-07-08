@@ -26,7 +26,6 @@ const ProgressFill = styled.div<{ fraction: number }>`
 const Content = styled.main`
   flex: 1;
   width: 100%;
-  max-width: ${({ theme }) => theme.maxWidth};
   padding: 48px 24px;
   display: flex;
   flex-direction: column;

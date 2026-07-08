@@ -10,7 +10,6 @@ const Bar = styled.div`
   justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  max-width: ${({ theme }) => theme.maxWidth};
   padding: 12px 24px 0;
 `;
 

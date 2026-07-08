@@ -13,20 +13,18 @@ const Layout = styled.div`
 const Row = styled.div`
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-evenly;
   gap: 24px;
   width: 100%;
 `;
 
 const PanelWrap = styled.div`
-  width: 100%;
-  max-width: 280px;
+  width: 280px;
   margin-top: 12px;
   padding: 20px;
   border-radius: 12px;
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: 0;
 `;
 
 const PanelHeading = styled.h3`
@@ -88,14 +86,20 @@ export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
   continueLabel = "Continue",
 }) => {
   const eligible = interactiveIndices ?? slices.map((_, i) => i);
-  const seedConfirmed = mode === "name" ? eligible.filter((i) => slices[i].name.trim() !== "") : [];
+  const seedConfirmed =
+    mode === "name" ? eligible.filter((i) => slices[i].name.trim() !== "") : [];
   const [confirmed, setConfirmed] = useState<number[]>(seedConfirmed);
   const firstOpen = eligible.find((i) => !seedConfirmed.includes(i)) ?? null;
   const [activeIndex, setActiveIndex] = useState<number | null>(firstOpen);
-  const [draftName, setDraftName] = useState(firstOpen !== null ? slices[firstOpen].name : "");
+  const [draftName, setDraftName] = useState(
+    firstOpen !== null ? slices[firstOpen].name : "",
+  );
 
   const allDone = eligible.every((i) => confirmed.includes(i));
-  const dialSlices = slices.map((s, i) => ({ ...s, baseline: baselineValues?.[i] }));
+  const dialSlices = slices.map((s, i) => ({
+    ...s,
+    baseline: baselineValues?.[i],
+  }));
   const active = activeIndex !== null ? slices[activeIndex] : null;
 
   const activate = (index: number) => {
@@ -104,7 +108,9 @@ export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
   };
 
   const confirmAndAdvance = (index: number) => {
-    const updated = confirmed.includes(index) ? confirmed : [...confirmed, index];
+    const updated = confirmed.includes(index)
+      ? confirmed
+      : [...confirmed, index];
     setConfirmed(updated);
     const next = eligible.find((i) => !updated.includes(i)) ?? null;
     setActiveIndex(next);
@@ -120,66 +126,88 @@ export const WheelPhaseScreen: React.FC<WheelPhaseScreenProps> = ({
       </HintText>
 
       <Row>
-        <WheelDial
-          slices={dialSlices}
-          mode={mode === "name" ? "name" : "rate"}
-          activeIndex={activeIndex}
-          interactiveIndices={interactiveIndices}
-          colorForIndex={colorForIndex}
-          onActivate={activate}
-          onRate={(i, value) => onRate?.(i, value)}
-        />
+        <div>
+          <WheelDial
+            slices={dialSlices}
+            mode={mode === "name" ? "name" : "rate"}
+            activeIndex={activeIndex}
+            interactiveIndices={interactiveIndices}
+            colorForIndex={colorForIndex}
+            onActivate={activate}
+            onRate={(i, value) => onRate?.(i, value)}
+          />
+        </div>
 
-        {mode === "rate" && active && activeIndex !== null && (
-          <PanelWrap>
-            <PanelHeading>{active.name || `Area ${activeIndex + 1}`}</PanelHeading>
-            <NumberRow>
-              <NumberInput
-                autoFocus
-                type="number"
-                min={0}
-                max={10}
-                value={active.rating}
-                onChange={(e) => onRate?.(activeIndex, Math.max(0, Math.min(10, Number(e.target.value))))}
-                onKeyDown={(e) => e.key === "Enter" && confirmAndAdvance(activeIndex)}
-              />
-              <span>/ 10 (or drag the wedge)</span>
-            </NumberRow>
-            <Button type="button" onClick={() => confirmAndAdvance(activeIndex)}>
-              Next
-            </Button>
-          </PanelWrap>
-        )}
-
-        {mode === "name" && activeIndex !== null && (
-          <PanelWrap>
-            <PanelHeading>Area {activeIndex + 1}</PanelHeading>
-            <TextInput
-              autoFocus
-              placeholder="e.g. Health"
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && draftName.trim()) {
-                  onNameChange?.(activeIndex, draftName.trim());
-                  confirmAndAdvance(activeIndex);
-                }
-              }}
-            />
-            <ButtonRow>
+        <PanelWrap>
+          {mode === "rate" && active && activeIndex !== null && (
+            <>
+              <PanelHeading>
+                {active.name || `Area ${activeIndex + 1}`}
+              </PanelHeading>
+              <NumberRow>
+                <NumberInput
+                  autoFocus
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={active.rating}
+                  onChange={(e) =>
+                    onRate?.(
+                      activeIndex,
+                      Math.max(0, Math.min(10, Number(e.target.value))),
+                    )
+                  }
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && confirmAndAdvance(activeIndex)
+                  }
+                />
+                <span>/ 10 (or drag the wedge)</span>
+              </NumberRow>
               <Button
                 type="button"
-                disabled={!draftName.trim()}
-                onClick={() => {
-                  onNameChange?.(activeIndex, draftName.trim());
-                  confirmAndAdvance(activeIndex);
-                }}
+                onClick={() => confirmAndAdvance(activeIndex)}
               >
                 Next
               </Button>
-            </ButtonRow>
-          </PanelWrap>
-        )}
+            </>
+          )}
+
+          {mode === "name" && activeIndex !== null && (
+            <>
+              <PanelHeading>
+                {slices[activeIndex].name.length > 0
+                  ? "Would you like to change this?"
+                  : activeIndex == 0
+                    ? "What is an important area?"
+                    : "What is another important area?"}
+              </PanelHeading>
+              <TextInput
+                autoFocus
+                placeholder="e.g. Health"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && draftName.trim()) {
+                    onNameChange?.(activeIndex, draftName.trim());
+                    confirmAndAdvance(activeIndex);
+                  }
+                }}
+              />
+              <ButtonRow>
+                <Button
+                  type="button"
+                  disabled={!draftName.trim()}
+                  onClick={() => {
+                    onNameChange?.(activeIndex, draftName.trim());
+                    confirmAndAdvance(activeIndex);
+                  }}
+                >
+                  Enter
+                </Button>
+              </ButtonRow>
+            </>
+          )}
+        </PanelWrap>
       </Row>
 
       <ButtonRow>
