@@ -29,6 +29,7 @@ const Content = styled.main`
   padding: 48px 24px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
 `;
 

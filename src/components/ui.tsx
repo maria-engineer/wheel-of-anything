@@ -8,6 +8,7 @@ export const Title = styled.h1`
 `;
 
 export const Subtitle = styled.p`
+  max-width: ${({ theme }) => theme.maxWidth};
   font-size: 1.1rem;
   color: ${({ theme }) => theme.colors.muted};
   margin: 0 0 32px;
@@ -43,6 +44,9 @@ export const Button = styled.button<{ variant?: "primary" | "secondary" }>`
 
 export const ButtonRow = styled.div`
   display: flex;
+  align-self:center;
+  align-content: center;
+  justify-content: space-evenly;
   gap: 12px;
   margin-top: 32px;
 `;

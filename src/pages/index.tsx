@@ -5,7 +5,8 @@ import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
 import { SaveLoadBar } from "../components/SaveLoadBar";
 import { Subtitle } from "../components/ui";
-import { WheelPhaseScreen } from "../components/wheel/WheelPhaseScreen";
+import { WheelNameScreen } from "../components/wheel/WheelNameScreen";
+import { WheelRateScreen } from "../components/wheel/WheelRateScreen";
 import { BranchStep } from "../components/steps/BranchStep";
 import { ChoicesSetupStep } from "../components/steps/ChoicesSetupStep";
 import { ChoicesCompareStep } from "../components/steps/ChoicesCompareStep";
@@ -56,10 +57,9 @@ const IndexPage: React.FC<PageProps> = () => {
         {step.kind === "title" && <TitleStep onSubmit={(title) => dispatch({ type: "SET_TITLE", title })} />}
 
         {step.kind === "setupWheel" && (
-          <WheelPhaseScreen
+          <WheelNameScreen
             title={`Name 8 areas of your Wheel of ${appData.title}`}
             subtitle="Click a wedge to name that area."
-            mode="name"
             slices={appData.nowWheel.slices}
             onNameChange={(index, name) => dispatch({ type: "SET_SLICE_NAME", index, name })}
             onContinue={() => dispatch({ type: "SUBMIT_SETUP" })}
@@ -67,10 +67,9 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "rateNow" && (
-          <WheelPhaseScreen
+          <WheelRateScreen
             title="How is each area going right now?"
-            subtitle="Click a wedge, then drag it (or type a number) to rate it 0–10."
-            mode="rate"
+            subtitle="Click on an area to rate it according to how you feel it's going right now."
             slices={appData.nowWheel.slices}
             onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "now" }, index, rating })}
             onContinue={() => dispatch({ type: "SUBMIT_RATE_NOW" })}
@@ -86,10 +85,9 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "choicesRate" && (
-          <WheelPhaseScreen
+          <WheelRateScreen
             title={`"${appData.choices[step.choiceIndex].title}": how would each area look?`}
             subtitle={`Choice ${step.choiceIndex + 1} of ${appData.choices.length}`}
-            mode="rate"
             slices={appData.choices[step.choiceIndex].slices}
             baselineValues={nowValues}
             onRate={(index, rating) =>
@@ -105,10 +103,9 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "futureImprove" && (
-          <WheelPhaseScreen
+          <WheelRateScreen
             title="Where do you want each area to be?"
             subtitle="The dark tick on each wedge shows where you are now. Fill in your ideal future."
-            mode="rate"
             slices={appData.futureWheel.slices}
             baselineValues={nowValues}
             onRate={(index, rating) => dispatch({ type: "RATE_SLICE", target: { wheel: "future" }, index, rating })}
@@ -117,10 +114,9 @@ const IndexPage: React.FC<PageProps> = () => {
         )}
 
         {step.kind === "futureDecrease" && (
-          <WheelPhaseScreen
+          <WheelRateScreen
             title="Where could you accept less?"
             subtitle="These areas didn't change — would you trade some of it away to gain elsewhere?"
-            mode="rate"
             slices={appData.futureWheel.slices}
             interactiveIndices={decreaseQueue}
             baselineValues={nowValues}
