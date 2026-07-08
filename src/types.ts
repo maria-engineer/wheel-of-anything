@@ -20,8 +20,28 @@ export interface Wheel {
   slices: Slice[]; // always SLICE_COUNT entries
 }
 
+export type Path = "B" | "C";
+
+// The current stage of the wheel-building flow. Part of AppData so a
+// saved/exported session captures not just the data but where the user
+// was in the process.
+export type Step =
+  | { kind: "title" }
+  | { kind: "setupWheel" }
+  | { kind: "rateNow" }
+  | { kind: "branch" }
+  | { kind: "choicesSetup" }
+  | { kind: "choicesRate"; choiceIndex: number }
+  | { kind: "choicesCompare" }
+  | { kind: "futureImprove" }
+  | { kind: "futureDecrease" }
+  | { kind: "futureSelect" }
+  | { kind: "futureFollowup"; queueIndex: number }
+  | { kind: "results" };
+
 export interface AppData {
   title: string; // "Wheel of [X]"
+  stage: Step;
   nowWheel: Wheel;
   futureWheel: Wheel;
   choices: Wheel[]; // at most MAX_CHOICES
@@ -37,6 +57,7 @@ export const emptyWheel = (title: string): Wheel => ({
 
 export const emptyAppData = (): AppData => ({
   title: "",
+  stage: { kind: "title" },
   nowWheel: emptyWheel("Now"),
   futureWheel: emptyWheel("Future"),
   choices: [],

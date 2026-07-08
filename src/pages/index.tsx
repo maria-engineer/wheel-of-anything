@@ -37,7 +37,8 @@ const stepKey = (step: Step): string => JSON.stringify(step);
 
 const IndexPage: React.FC<PageProps> = () => {
   const { state, dispatch } = useWheel();
-  const { appData, step, decreaseQueue, selectedSliceIndices } = state;
+  const { appData, decreaseQueue, selectedSliceIndices } = state;
+  const step = appData.stage;
   const nowValues = appData.nowWheel.slices.map((s) => s.rating);
 
   return (

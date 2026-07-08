@@ -1,9 +1,8 @@
-import { Action, FlowState, SliceTarget, Step } from "./flowTypes";
-import { AppData, Wheel, emptyAppData } from "../types";
+import { Action, FlowState, SliceTarget } from "./flowTypes";
+import { AppData, Step, Wheel, emptyAppData } from "../types";
 
 export const initialFlowState: FlowState = {
   appData: emptyAppData(),
-  step: { kind: "title" },
   path: null,
   decreaseQueue: [],
   selectedSliceIndices: [],
@@ -33,13 +32,14 @@ const patchSlice = (
   return withWheel(appData, target, { ...wheel, slices });
 };
 
+const withStage = (appData: AppData, stage: Step): AppData => ({ ...appData, stage });
+
 export function flowReducer(state: FlowState, action: Action): FlowState {
   switch (action.type) {
     case "SET_TITLE":
       return {
         ...state,
-        appData: { ...state.appData, title: action.title },
-        step: { kind: "setupWheel" },
+        appData: withStage({ ...state.appData, title: action.title }, { kind: "setupWheel" }),
       };
 
     case "SET_SLICE_NAME": {
@@ -60,7 +60,7 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
     }
 
     case "SUBMIT_SETUP":
-      return { ...state, step: { kind: "rateNow" } };
+      return { ...state, appData: withStage(state.appData, { kind: "rateNow" }) };
 
     case "RATE_SLICE":
       return { ...state, appData: patchSlice(state.appData, action.target, action.index, { rating: action.rating }) };
@@ -72,11 +72,11 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
       };
 
     case "SUBMIT_RATE_NOW":
-      return { ...state, step: { kind: "branch" } };
+      return { ...state, appData: withStage(state.appData, { kind: "branch" }) };
 
     case "CHOOSE_PATH": {
       if (action.path === "C") {
-        return { ...state, path: "C", step: { kind: "choicesSetup" } };
+        return { ...state, path: "C", appData: withStage(state.appData, { kind: "choicesSetup" }) };
       }
       const futureWheel: Wheel = {
         ...state.appData.futureWheel,
@@ -85,8 +85,7 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
       return {
         ...state,
         path: "B",
-        appData: { ...state.appData, futureWheel },
-        step: { kind: "futureImprove" },
+        appData: withStage({ ...state.appData, futureWheel }, { kind: "futureImprove" }),
       };
     }
 
@@ -97,32 +96,30 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
       }));
       return {
         ...state,
-        appData: { ...state.appData, choices },
-        step: { kind: "choicesRate", choiceIndex: 0 },
+        appData: withStage({ ...state.appData, choices }, { kind: "choicesRate", choiceIndex: 0 }),
       };
     }
 
     case "SUBMIT_CHOICE_RATE": {
-      const step = state.step;
-      const choiceIndex = step.kind === "choicesRate" ? step.choiceIndex : 0;
-      const nextStep: Step =
+      const stage = state.appData.stage;
+      const choiceIndex = stage.kind === "choicesRate" ? stage.choiceIndex : 0;
+      const nextStage: Step =
         choiceIndex < state.appData.choices.length - 1
           ? { kind: "choicesRate", choiceIndex: choiceIndex + 1 }
           : { kind: "choicesCompare" };
-      return { ...state, step: nextStep };
+      return { ...state, appData: withStage(state.appData, nextStage) };
     }
 
     case "SUBMIT_FUTURE_IMPROVE": {
       const decreaseQueue = state.appData.nowWheel.slices
         .map((nowSlice, i) => (nowSlice.rating === state.appData.futureWheel.slices[i].rating ? i : -1))
         .filter((i) => i >= 0);
-      const nextStep: Step =
-        decreaseQueue.length > 0 ? { kind: "futureDecrease" } : { kind: "futureSelect" };
-      return { ...state, decreaseQueue, step: nextStep };
+      const nextStage: Step = decreaseQueue.length > 0 ? { kind: "futureDecrease" } : { kind: "futureSelect" };
+      return { ...state, decreaseQueue, appData: withStage(state.appData, nextStage) };
     }
 
     case "SUBMIT_FUTURE_DECREASE":
-      return { ...state, step: { kind: "futureSelect" } };
+      return { ...state, appData: withStage(state.appData, { kind: "futureSelect" }) };
 
     case "TOGGLE_SELECTED_SLICE": {
       const selectedSliceIndices = state.selectedSliceIndices.includes(action.index)
@@ -132,9 +129,9 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
     }
 
     case "SUBMIT_FUTURE_SELECT": {
-      const nextStep: Step =
+      const nextStage: Step =
         state.selectedSliceIndices.length > 0 ? { kind: "futureFollowup", queueIndex: 0 } : { kind: "results" };
-      return { ...state, step: nextStep };
+      return { ...state, appData: withStage(state.appData, nextStage) };
     }
 
     case "ANSWER_FOLLOWUP": {
@@ -144,13 +141,13 @@ export function flowReducer(state: FlowState, action: Action): FlowState {
           : slice
       );
       const futureWheel = { ...state.appData.futureWheel, slices };
-      const step = state.step;
-      const queueIndex = step.kind === "futureFollowup" ? step.queueIndex : 0;
-      const nextStep: Step =
+      const stage = state.appData.stage;
+      const queueIndex = stage.kind === "futureFollowup" ? stage.queueIndex : 0;
+      const nextStage: Step =
         queueIndex + 1 < state.selectedSliceIndices.length
           ? { kind: "futureFollowup", queueIndex: queueIndex + 1 }
           : { kind: "results" };
-      return { ...state, appData: { ...state.appData, futureWheel }, step: nextStep };
+      return { ...state, appData: withStage({ ...state.appData, futureWheel }, nextStage) };
     }
 
     case "SET_ACTION_ITEMS":

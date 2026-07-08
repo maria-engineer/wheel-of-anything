@@ -1,26 +1,11 @@
-import { AppData, ActionItem } from "../types";
+import { AppData, ActionItem, Path, Step } from "../types";
 
-export type Path = "B" | "C";
+export type { Path, Step };
 
 export type SliceTarget = { wheel: "now" } | { wheel: "future" } | { wheel: "choice"; choiceIndex: number };
 
-export type Step =
-  | { kind: "title" }
-  | { kind: "setupWheel" }
-  | { kind: "rateNow" }
-  | { kind: "branch" }
-  | { kind: "choicesSetup" }
-  | { kind: "choicesRate"; choiceIndex: number }
-  | { kind: "choicesCompare" }
-  | { kind: "futureImprove" }
-  | { kind: "futureDecrease" }
-  | { kind: "futureSelect" }
-  | { kind: "futureFollowup"; queueIndex: number }
-  | { kind: "results" };
-
 export interface FlowState {
   appData: AppData;
-  step: Step;
   path: Path | null;
   decreaseQueue: number[]; // slice indices left unchanged by the improve pass
   selectedSliceIndices: number[]; // chosen in futureSelect, to get a follow-up question

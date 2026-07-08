@@ -25,10 +25,10 @@ export const downloadWheelFile = (state: FlowState): void => {
 const isValidFlowState = (value: unknown): value is FlowState => {
   if (!value || typeof value !== "object") return false;
   const state = value as Record<string, unknown>;
-  const step = state.step as Record<string, unknown> | undefined;
-  if (!step || typeof step.kind !== "string") return false;
   const appData = state.appData as Record<string, unknown> | undefined;
   if (!appData || typeof appData.title !== "string") return false;
+  const stage = appData.stage as Record<string, unknown> | undefined;
+  if (!stage || typeof stage.kind !== "string") return false;
   return (
     !!appData.nowWheel &&
     !!appData.futureWheel &&
