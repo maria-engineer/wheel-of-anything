@@ -3,6 +3,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import type { HeadFC, PageProps } from "gatsby";
 import { Layout } from "../components/Layout";
+import { SaveLoadBar } from "../components/SaveLoadBar";
 import { Subtitle } from "../components/ui";
 import { WheelPhaseScreen } from "../components/wheel/WheelPhaseScreen";
 import { BranchStep } from "../components/steps/BranchStep";
@@ -40,7 +41,16 @@ const IndexPage: React.FC<PageProps> = () => {
   const nowValues = appData.nowWheel.slices.map((s) => s.rating);
 
   return (
-    <Layout progress={stepProgress(step)}>
+    <Layout
+      progress={stepProgress(step)}
+      topBar={
+        <SaveLoadBar
+          state={state}
+          showImport={step.kind === "title"}
+          onImport={(imported) => dispatch({ type: "RESTORE", state: imported })}
+        />
+      }
+    >
       <div key={stepKey(step)}>
         {step.kind === "title" && <TitleStep onSubmit={(title) => dispatch({ type: "SET_TITLE", title })} />}
 

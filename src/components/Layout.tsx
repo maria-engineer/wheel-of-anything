@@ -33,13 +33,18 @@ const Content = styled.main`
   justify-content: center;
 `;
 
-export const Layout: React.FC<{ progress?: number; children: React.ReactNode }> = ({ progress, children }) => (
+export const Layout: React.FC<{ progress?: number; topBar?: React.ReactNode; children: React.ReactNode }> = ({
+  progress,
+  topBar,
+  children,
+}) => (
   <ThemeProvider theme={theme}>
     <GlobalStyle />
     <Screen>
       <ProgressTrack>
         <ProgressFill fraction={progress ?? 0} />
       </ProgressTrack>
+      {topBar}
       <Content>{children}</Content>
     </Screen>
   </ThemeProvider>
